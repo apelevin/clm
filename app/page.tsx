@@ -52,7 +52,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, useParallel: true }), // Используем параллельный парсинг
       });
       
       console.log("Получен ответ:", response.status, response.statusText);
@@ -67,8 +67,9 @@ export default function Home() {
       const data: ParsedContract = await response.json();
       console.log("Данные получены:", {
         paragraphs: data.paragraphs?.length || 0,
-        actions: data.actions?.length || 0,
         provisions: data.keyProvisions?.length || 0,
+        payments: data.paymentObligations?.length || 0,
+        states: data.possibleStates?.length || 0,
       });
       clearInterval(timerInterval);
       setProgressStep(4);
@@ -77,20 +78,36 @@ export default function Home() {
       // Сохраняем данные в sessionStorage вместо передачи через URL
       try {
         const dataString = JSON.stringify(data);
+        const dataSize = new Blob([dataString]).size;
+        console.log("Размер данных для сохранения:", (dataSize / 1024).toFixed(2), "KB");
+        
+        // Проверяем лимит sessionStorage (обычно 5-10MB)
+        if (dataSize > 5 * 1024 * 1024) {
+          console.warn("Данные очень большие, возможны проблемы с sessionStorage");
+        }
+        
         sessionStorage.setItem("contractData", dataString);
-        console.log("Данные сохранены в sessionStorage, длина:", dataString.length);
+        console.log("Данные сохранены в sessionStorage, длина строки:", dataString.length);
         
         // Проверяем, что данные действительно сохранились
         const verifyData = sessionStorage.getItem("contractData");
-        if (!verifyData || verifyData !== dataString) {
-          throw new Error("Данные не сохранились в sessionStorage");
+        if (!verifyData) {
+          throw new Error("Данные не сохранились в sessionStorage (null)");
         }
-        console.log("Данные успешно проверены в sessionStorage");
-      } catch (storageError) {
+        if (verifyData.length !== dataString.length) {
+          console.warn("Длина данных не совпадает:", verifyData.length, "vs", dataString.length);
+        }
+        console.log("Данные успешно проверены в sessionStorage, длина:", verifyData.length);
+      } catch (storageError: any) {
         console.error("Ошибка сохранения в sessionStorage:", storageError);
+        console.error("Тип ошибки:", storageError?.name, "Сообщение:", storageError?.message);
         setIsLoading(false);
         setStatus("error");
-        setErrorMessage("Не удалось сохранить данные. Попробуйте снова.");
+        setErrorMessage(
+          storageError?.message?.includes("QuotaExceeded") 
+            ? "Данные слишком большие для сохранения. Попробуйте сократить текст договора."
+            : "Не удалось сохранить данные. Попробуйте снова."
+        );
         return;
       }
 
@@ -98,6 +115,7 @@ export default function Home() {
       // Используем replace вместо push, чтобы нельзя было вернуться назад к пустой форме
       setTimeout(() => {
         console.log("Переход на страницу результата");
+        setIsLoading(false); // Убеждаемся, что загрузка завершена
         router.replace("/result");
       }, 300);
     } catch (error: any) {

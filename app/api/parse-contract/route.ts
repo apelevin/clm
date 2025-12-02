@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { validateParsedContract } from "@/lib/contract-parser";
 import { splitTextIntoParagraphs } from "@/lib/text-processor";
+import { metricsCollector } from "@/lib/metrics";
+import { parseContractParallel, mergeParseResults } from "@/lib/parallel-parser";
+import { ParsedContract } from "@/types/contract";
 
 const SYSTEM_PROMPT = `Ты — эксперт по анализу юридических договоров. Твоя задача — извлечь структурированную информацию из текста договора и вернуть её в строгом JSON формате.
 
@@ -110,10 +113,23 @@ const SYSTEM_PROMPT = `Ты — эксперт по анализу юридич�
 ВАЖНО: Всегда указывай sourceRefs для каждого ключевого положения, финансового обязательства, состояния и задачи. Без sourceRefs элемент не может быть отображён в интерфейсе.`;
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  const endpoint = "/api/parse-contract";
+  let inputSize = 0;
+  let outputSize = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let totalTokens = 0;
+  let modelName = "";
+
   try {
     console.log("=== Начало обработки запроса ===");
-    const { text } = await request.json();
+    const body = await request.json();
+    const { text, useParallel: useParallelParam = true } = body;
+    let useParallel = useParallelParam;
+    inputSize = new Blob([text]).size;
     console.log("Получен текст длиной:", text?.length || 0);
+    console.log("Использование параллельного парсинга:", useParallel);
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       console.error("Ошибка: пустой текст");
@@ -131,74 +147,113 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Используем модель из переменной окружения или по умолчанию
-    const modelName = process.env.OPENAI_MODEL || "gpt-5.1";
-    console.log(`Вызов OpenAI API с моделью: ${modelName}`);
-    
-    // Пробуем использовать новый API responses.create(), если доступен
-    let content: string;
-    
-    try {
-      // Новый формат API с responses.create()
-      if (openai.responses && typeof openai.responses.create === 'function') {
-        console.log("Используется новый API responses.create()");
-        const result = await openai.responses.create({
-          model: modelName,
-          input: `${SYSTEM_PROMPT}\n\nПроанализируй следующий договор:\n\n${text}`,
-          reasoning: { effort: "low" },
-        });
-        content = result.output_text || "";
-      } else {
-        // Fallback на стандартный API
-        console.log("Используется стандартный API chat.completions.create()");
-        const completion = await openai.chat.completions.create({
-          model: modelName,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `Проанализируй следующий договор:\n\n${text}` },
-          ],
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-          max_tokens: 4000,
-        });
-        content = completion.choices[0]?.message?.content || "";
+    modelName = process.env.OPENAI_MODEL || "gpt-5.1";
+    let parsedData: any;
+
+    // Используем параллельный парсинг, если включен
+    if (useParallel) {
+      console.log("Использование параллельного парсинга...");
+      try {
+        const parallelResults = await parseContractParallel(text);
+        const mergedData = mergeParseResults(parallelResults, text);
+        
+        // Валидируем данные после параллельного парсинга
+        console.log("Валидация данных после параллельного парсинга...");
+        parsedData = validateParsedContract(mergedData);
+        
+        // Подсчитываем примерные токены (параллельные запросы)
+        // Каждый запрос использует примерно 1/4 от полного текста
+        const avgSectionSize = text.length / 4;
+        inputTokens = Math.ceil((avgSectionSize * 4) / 4); // Примерная оценка
+        outputTokens = Math.ceil(JSON.stringify(parsedData).length / 4);
+        totalTokens = inputTokens + outputTokens;
+        
+        console.log("Параллельный парсинг завершен успешно");
+      } catch (parallelError: any) {
+        console.error("Ошибка параллельного парсинга, переключаемся на последовательный:", parallelError);
+        console.error("Детали ошибки:", parallelError?.message, parallelError?.stack);
+        // Fallback на последовательный метод
+        useParallel = false;
+        parsedData = null;
       }
-    } catch (apiError: any) {
-      // Если новый API не поддерживается, пробуем стандартный
-      if (apiError?.message?.includes("responses") || apiError?.status === 404) {
-        console.log("Новый API не поддерживается, используем стандартный");
-        const completion = await openai.chat.completions.create({
-          model: modelName,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `Проанализируй следующий договор:\n\n${text}` },
-          ],
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-          max_tokens: 4000,
-        });
-        content = completion.choices[0]?.message?.content || "";
-      } else {
-        throw apiError;
-      }
-    }
-    
-    console.log("OpenAI API ответил успешно");
-    if (!content) {
-      console.error("Ошибка: пустой ответ от OpenAI");
-      throw new Error("Empty response from OpenAI");
     }
 
-    console.log("Парсинг JSON ответа...");
-    console.log("Длина ответа:", content.length);
-    console.log("Начало ответа:", content.substring(0, 200));
-    
-    let parsedData;
-    try {
-      // Пробуем найти JSON в ответе, если он обёрнут в текст
-      let jsonContent = content.trim();
+    // Последовательный парсинг (старый метод)
+    if (!useParallel || !parsedData) {
+      console.log("Использование последовательного парсинга...");
+      const systemPromptSize = new Blob([SYSTEM_PROMPT]).size;
+      const userMessage = `Проанализируй следующий договор:\n\n${text}`;
+      const userMessageSize = new Blob([userMessage]).size;
+      let content: string;
       
-      // Если ответ начинается не с {, пытаемся найти JSON блок
+      try {
+        // Новый формат API с responses.create()
+        if (openai.responses && typeof openai.responses.create === 'function') {
+          console.log("Используется новый API responses.create()");
+          const result = await openai.responses.create({
+            model: modelName,
+            input: `${SYSTEM_PROMPT}\n\n${userMessage}`,
+            reasoning: { effort: "low" },
+          });
+          content = result.output_text || "";
+          if (result.usage) {
+            inputTokens = result.usage.prompt_tokens || 0;
+            outputTokens = result.usage.completion_tokens || 0;
+            totalTokens = result.usage.total_tokens || 0;
+          }
+        } else {
+          // Fallback на стандартный API
+          console.log("Используется стандартный API chat.completions.create()");
+          const completion = await openai.chat.completions.create({
+            model: modelName,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.3,
+            response_format: { type: "json_object" },
+            max_tokens: 4000,
+          });
+          content = completion.choices[0]?.message?.content || "";
+          if (completion.usage) {
+            inputTokens = completion.usage.prompt_tokens || 0;
+            outputTokens = completion.usage.completion_tokens || 0;
+            totalTokens = completion.usage.total_tokens || 0;
+          }
+        }
+      } catch (apiError: any) {
+        // Если новый API не поддерживается, пробуем стандартный
+        if (apiError?.message?.includes("responses") || apiError?.status === 404) {
+          console.log("Новый API не поддерживается, используем стандартный");
+          const completion = await openai.chat.completions.create({
+            model: modelName,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.3,
+            response_format: { type: "json_object" },
+            max_tokens: 4000,
+          });
+          content = completion.choices[0]?.message?.content || "";
+          if (completion.usage) {
+            inputTokens = completion.usage.prompt_tokens || 0;
+            outputTokens = completion.usage.completion_tokens || 0;
+            totalTokens = completion.usage.total_tokens || 0;
+          }
+        } else {
+          throw apiError;
+        }
+      }
+      
+      console.log("OpenAI API ответил успешно");
+      if (!content) {
+        console.error("Ошибка: пустой ответ от OpenAI");
+        throw new Error("Empty response from OpenAI");
+      }
+
+      console.log("Парсинг JSON ответа...");
+      let jsonContent = content.trim();
       if (!jsonContent.startsWith('{')) {
         const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -207,15 +262,23 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      parsedData = JSON.parse(jsonContent);
-    } catch (parseError) {
-      console.error("Ошибка парсинга JSON:", parseError);
-      console.error("Содержимое ответа:", content.substring(0, 500));
-      throw new Error("Неверный формат ответа от OpenAI. Ожидается JSON объект.");
+      try {
+        parsedData = JSON.parse(jsonContent);
+      } catch (parseError) {
+        console.error("Ошибка парсинга JSON:", parseError);
+        throw new Error("Неверный формат ответа от OpenAI. Ожидается JSON объект.");
+      }
     }
 
-    console.log("Валидация данных...");
-    const validatedData = validateParsedContract(parsedData);
+    // Валидация данных (если еще не была выполнена для параллельного парсинга)
+    let validatedData: ParsedContract;
+    if (useParallel && parsedData) {
+      // Данные уже валидированы в параллельном парсинге
+      validatedData = parsedData;
+    } else {
+      console.log("Валидация данных...");
+      validatedData = validateParsedContract(parsedData);
+    }
 
     // Если параграфы не были извлечены, разобьём текст вручную
     if (validatedData.paragraphs.length === 0) {
@@ -226,10 +289,44 @@ export async function POST(request: NextRequest) {
     console.log("Успешно обработано:", {
       paragraphs: validatedData.paragraphs.length,
       provisions: validatedData.keyProvisions.length,
+      payments: validatedData.paymentObligations.length,
+      states: validatedData.possibleStates.length,
+    });
+
+    outputSize = new Blob([JSON.stringify(validatedData)]).size;
+    const duration = Date.now() - startTime;
+
+    // Логируем метрики
+    const finalInputSize = useParallel ? inputSize : (new Blob([SYSTEM_PROMPT]).size + new Blob([`Проанализируй следующий договор:\n\n${text}`]).size);
+    metricsCollector.log({
+      endpoint,
+      timestamp: Date.now(),
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      duration,
+      inputSize: finalInputSize,
+      outputSize,
+      model: modelName,
     });
 
     return NextResponse.json(validatedData);
   } catch (error: any) {
+    const duration = Date.now() - startTime;
+    
+    // Логируем метрики даже при ошибке
+    metricsCollector.log({
+      endpoint,
+      timestamp: Date.now(),
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      duration,
+      inputSize,
+      outputSize,
+      model: modelName,
+      error: error?.message || "Unknown error",
+    });
     console.error("=== ОШИБКА ПРИ ОБРАБОТКЕ ДОГОВОРА ===");
     console.error("Тип ошибки:", error?.constructor?.name);
     console.error("Сообщение:", error?.message);

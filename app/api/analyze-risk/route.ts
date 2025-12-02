@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { ClauseRiskAnalysis } from "@/types/contract";
+import { metricsCollector } from "@/lib/metrics";
+import { cache, generateRiskCacheKey } from "@/lib/cache";
 
 const RISK_PROMPT = `Ты — опытный юрист по договорному праву с экспертизой в CLM (Contract Lifecycle Management). Тебе будет передана формулировка обязательства из коммерческого договора (на русском языке) и, возможно, полный текст договора для анализа зависимостей.
 
@@ -106,6 +108,15 @@ const RISK_PROMPT = `Ты — опытный юрист по договорно�
 }`;
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  const endpoint = "/api/analyze-risk";
+  let inputSize = 0;
+  let outputSize = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let totalTokens = 0;
+  let modelName = "";
+
   try {
     const body = await req.json();
     const clauseText: string | undefined = body?.clauseText;
@@ -120,7 +131,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const modelName = process.env.OPENAI_MODEL || "gpt-5.1";
+    // Проверяем кэш
+    const cacheKey = generateRiskCacheKey(clauseText, provisionId, provisionCategory);
+    const cachedResult = cache.get<ClauseRiskAnalysis>(cacheKey);
+    if (cachedResult) {
+      console.log("Возвращаем результат из кэша для:", cacheKey);
+      return NextResponse.json(cachedResult);
+    }
+
+    modelName = process.env.OPENAI_MODEL || "gpt-5.1";
 
     // Формируем контекст для анализа
     let userMessage = `Проанализируй следующее условие договора:\n\n${clauseText}`;
@@ -129,9 +148,28 @@ export async function POST(req: NextRequest) {
       userMessage += `\n\nКатегория обязательства: ${provisionCategory}`;
     }
     
+    // Оптимизация: передаем только ID параграфов и краткую структуру вместо полного договора
+    let contractContext = "";
     if (fullContract) {
-      userMessage += `\n\nПолный текст договора для анализа зависимостей:\n${JSON.stringify(fullContract, null, 2)}`;
+      // Извлекаем только структуру для анализа зависимостей
+      const contractSummary = {
+        keyProvisions: fullContract.keyProvisions?.map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          category: p.category,
+        })) || [],
+        paymentObligations: fullContract.paymentObligations?.map((p: any) => ({
+          id: p.id,
+          purpose: p.purpose,
+        })) || [],
+      };
+      contractContext = `\n\nСтруктура договора для анализа зависимостей:\n${JSON.stringify(contractSummary, null, 2)}`;
     }
+    
+    const fullUserMessage = userMessage + contractContext;
+    const systemPromptSize = new Blob([RISK_PROMPT]).size;
+    const userMessageSize = new Blob([fullUserMessage]).size;
+    inputSize = systemPromptSize + userMessageSize;
 
     let content: string;
 
@@ -139,22 +177,32 @@ export async function POST(req: NextRequest) {
       if (openai.responses && typeof openai.responses.create === "function") {
         const result = await openai.responses.create({
           model: modelName,
-          input: `${RISK_PROMPT}\n\n${userMessage}`,
+          input: `${RISK_PROMPT}\n\n${fullUserMessage}`,
           reasoning: { effort: "medium" },
         });
         content = result.output_text || "";
+        if (result.usage) {
+          inputTokens = result.usage.prompt_tokens || 0;
+          outputTokens = result.usage.completion_tokens || 0;
+          totalTokens = result.usage.total_tokens || 0;
+        }
       } else {
         const completion = await openai.chat.completions.create({
           model: modelName,
           messages: [
             { role: "system", content: RISK_PROMPT },
-            { role: "user", content: userMessage },
+            { role: "user", content: fullUserMessage },
           ],
           temperature: 0.2,
           response_format: { type: "json_object" },
           max_tokens: 4000,
         });
         content = completion.choices[0]?.message?.content || "";
+        if (completion.usage) {
+          inputTokens = completion.usage.prompt_tokens || 0;
+          outputTokens = completion.usage.completion_tokens || 0;
+          totalTokens = completion.usage.total_tokens || 0;
+        }
       }
     } catch (apiError: any) {
       // Fallback, если новый API недоступен
@@ -163,13 +211,18 @@ export async function POST(req: NextRequest) {
           model: modelName,
           messages: [
             { role: "system", content: RISK_PROMPT },
-            { role: "user", content: userMessage },
+            { role: "user", content: fullUserMessage },
           ],
           temperature: 0.2,
           response_format: { type: "json_object" },
           max_tokens: 4000,
         });
         content = completion.choices[0]?.message?.content || "";
+        if (completion.usage) {
+          inputTokens = completion.usage.prompt_tokens || 0;
+          outputTokens = completion.usage.completion_tokens || 0;
+          totalTokens = completion.usage.total_tokens || 0;
+        }
       } else {
         throw apiError;
       }
@@ -298,8 +351,43 @@ export async function POST(req: NextRequest) {
       differences,
     };
 
+    // Сохраняем в кэш
+    cache.set(cacheKey, result, 24 * 60 * 60 * 1000); // 24 часа
+
+    outputSize = new Blob([JSON.stringify(result)]).size;
+    const duration = Date.now() - startTime;
+
+    // Логируем метрики
+    metricsCollector.log({
+      endpoint,
+      timestamp: Date.now(),
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      duration,
+      inputSize,
+      outputSize,
+      model: modelName,
+    });
+
     return NextResponse.json(result);
   } catch (error: any) {
+    const duration = Date.now() - startTime;
+    
+    // Логируем метрики даже при ошибке
+    metricsCollector.log({
+      endpoint,
+      timestamp: Date.now(),
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      duration,
+      inputSize,
+      outputSize,
+      model: modelName,
+      error: error?.message || "Unknown error",
+    });
+
     console.error("Ошибка при анализе рисков:", error);
     return NextResponse.json(
       { error: error?.message || "Не удалось выполнить анализ рисков." },

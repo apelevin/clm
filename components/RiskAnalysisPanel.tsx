@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { KeyProvision, ClauseRiskAnalysis, RiskParty } from "@/types/contract";
 
 interface RiskAnalysisPanelProps {
@@ -11,7 +11,7 @@ interface RiskAnalysisPanelProps {
   error?: string | null;
 }
 
-export default function RiskAnalysisPanel({
+function RiskAnalysisPanel({
   provision,
   riskResult,
   onClose,
@@ -404,4 +404,6 @@ export default function RiskAnalysisPanel({
     </div>
   );
 }
+
+export default memo(RiskAnalysisPanel);
 

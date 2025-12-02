@@ -31,12 +31,21 @@ function ResultContent() {
           const parsed = JSON.parse(storedData);
           console.log("Данные успешно распарсены:", {
             paragraphs: parsed.paragraphs?.length || 0,
-            actions: parsed.actions?.length || 0,
             provisions: parsed.keyProvisions?.length || 0,
+            payments: parsed.paymentObligations?.length || 0,
+            states: parsed.possibleStates?.length || 0,
+            hasContractState: !!parsed.contractState,
           });
+          
+          // Проверяем, что данные валидны
+          if (!parsed.paragraphs || !Array.isArray(parsed.paragraphs)) {
+            throw new Error("Невалидная структура данных: отсутствуют paragraphs");
+          }
+          
           if (mounted) {
             setContract(parsed);
             setIsLoading(false);
+            console.log("Данные установлены в состояние, контракт готов к отображению");
             // Очищаем sessionStorage только после успешной установки состояния
             setTimeout(() => {
               sessionStorage.removeItem("contractData");
@@ -44,15 +53,21 @@ function ResultContent() {
             }, 1000);
           }
           return;
-        } catch (parseError) {
+        } catch (parseError: any) {
           console.error("Ошибка парсинга данных из sessionStorage:", parseError);
+          console.error("Детали ошибки:", parseError?.message, parseError?.stack);
           sessionStorage.removeItem("contractData");
+          if (mounted) {
+            setIsLoading(false);
+            router.push("/");
+          }
         }
       } else {
         console.log("Данные не найдены в sessionStorage");
       }
-    } catch (storageError) {
+    } catch (storageError: any) {
       console.error("Ошибка чтения из sessionStorage:", storageError);
+      console.error("Детали ошибки:", storageError?.message);
     }
 
     // Fallback: пробуем получить из URL параметров (для обратной совместимости)
