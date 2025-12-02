@@ -90,27 +90,6 @@ function RiskAnalysisPanel({
     }
   };
 
-  const getBenchmarkStatusIcon = (status: string) => {
-    switch (status) {
-      case "present":
-        return "✓";
-      case "partial":
-        return "~";
-      default:
-        return "✗";
-    }
-  };
-
-  const getBenchmarkStatusColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return "text-green-600";
-      case "partial":
-        return "text-yellow-600";
-      default:
-        return "text-red-600";
-    }
-  };
 
   if (isLoading) {
     return (
@@ -328,54 +307,7 @@ function RiskAnalysisPanel({
           </div>
         </div>
 
-        {/* 5. Граф зависимостей обязательств */}
-        {riskResult.dependencyGraph && riskResult.dependencyGraph.edges.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Граф зависимостей обязательств</h3>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="space-y-3">
-                {riskResult.dependencyGraph.edges.map((edge, idx) => {
-                  const fromNode = riskResult.dependencyGraph!.nodes.find(n => n.id === edge.from);
-                  const toNode = riskResult.dependencyGraph!.nodes.find(n => n.id === edge.to);
-                  return (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-gray-900">{fromNode?.label || edge.from}</span>
-                      <span className="text-gray-500">↓ {edge.relationship}</span>
-                      <span className="font-medium text-gray-900">{toNode?.label || edge.to}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* 6. Профиль пункта в сравнении с рыночными стандартами */}
-        {riskResult.benchmark.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Профиль пункта в сравнении с рыночными стандартами</h3>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="space-y-3">
-                {riskResult.benchmark.map((item, idx) => (
-                  <div key={idx} className="border-b border-gray-200 last:border-0 pb-3 last:pb-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-900">{item.element}</div>
-                        <div className="text-xs text-gray-600">{item.requirement}</div>
-                      </div>
-                      <span className={`text-lg font-bold ${getBenchmarkStatusColor(item.status)}`}>
-                        {getBenchmarkStatusIcon(item.status)}
-                      </span>
-                    </div>
-                    {item.recommendation && (
-                      <div className="text-xs text-gray-600 mt-1">{item.recommendation}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 7. Мини-таймлайн событий */}
         {riskResult.timeline.length > 0 && (

@@ -21,10 +21,10 @@ export async function parseContractParallel(text: string): Promise<ParseResult> 
   const paragraphs = splitTextIntoParagraphs(text);
   
   // Извлекаем релевантные секции для каждого типа анализа
-  const metadataSection = extractRelevantSections(text, "metadata");
-  const paymentsSection = extractRelevantSections(text, "payments");
-  const obligationsSection = extractRelevantSections(text, "obligations");
-  const statesSection = extractRelevantSections(text, "states");
+  const metadataSection = extractRelevantSections(paragraphs, "metadata");
+  const paymentsSection = extractRelevantSections(paragraphs, "payments");
+  const obligationsSection = extractRelevantSections(paragraphs, "obligations");
+  const statesSection = extractRelevantSections(paragraphs, "states");
 
   // Выполняем параллельные запросы
   const [metadataResult, provisionsResult, paymentsResult, statesResult] = await Promise.allSettled([

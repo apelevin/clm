@@ -1,24 +1,63 @@
 import { Paragraph } from "@/types/contract";
 
 export function splitTextIntoParagraphs(text: string): Paragraph[] {
-  // Разбиваем текст на параграфы по двойным переносам строк
-  const paragraphs = text
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+  const normalizedText = text.replace(/\r\n/g, "\n");
+  const blocks = normalizedText.split(/\n{2,}/);
+  const paragraphs: Paragraph[] = [];
+  let index = 1;
 
-  return paragraphs.map((text, index) => ({
-    id: `p${index + 1}`,
-    text,
-  }));
+  const pushParagraph = (lines: string[]) => {
+    if (!lines.length) return;
+    const paragraphText = lines.join(" ").replace(/\s+/g, " ").trim();
+    if (!paragraphText) return;
+    paragraphs.push({ id: `p${index++}`, text: paragraphText });
+  };
+
+  const isEnumeratedLine = (line: string) => /^\d+(\.\d+)+/.test(line);
+  const isSectionHeading = (line: string) =>
+    /^[A-ZА-Я0-9][A-ZА-Я0-9\s.,-]{3,}$/.test(line) && !line.includes(".");
+
+  blocks.forEach((block) => {
+    const cleanedBlock = block.trim();
+    if (!cleanedBlock) return;
+
+    const lines = cleanedBlock
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    let currentParagraph: string[] = [];
+
+    lines.forEach((line, idx) => {
+      if (
+        currentParagraph.length > 0 &&
+        (isEnumeratedLine(line) ||
+          (isSectionHeading(line) && !isSectionHeading(currentParagraph.join(" "))))
+      ) {
+        pushParagraph(currentParagraph);
+        currentParagraph = [];
+      }
+
+      currentParagraph.push(line);
+
+      // Если следующая строка — пустая, завершить параграф
+      if (idx === lines.length - 1) {
+        pushParagraph(currentParagraph);
+        currentParagraph = [];
+      }
+    });
+  });
+
+  return paragraphs;
 }
 
 /**
  * Извлекает ключевые фрагменты текста для анализа определенных аспектов
  */
-export function extractRelevantSections(text: string, type: "metadata" | "payments" | "obligations" | "states"): string {
-  const lowerText = text.toLowerCase();
-  
+export function extractRelevantSections(
+  paragraphs: Paragraph[],
+  type: "metadata" | "payments" | "obligations" | "states"
+): string {
   // Ключевые слова для каждого типа анализа
   const keywords: Record<string, string[]> = {
     metadata: [
@@ -40,25 +79,28 @@ export function extractRelevantSections(text: string, type: "metadata" | "paymen
   };
 
   const relevantKeywords = keywords[type] || [];
-  
-  // Разбиваем текст на параграфы
-  const paragraphs = splitTextIntoParagraphs(text);
-  
+
   // Фильтруем параграфы, содержащие релевантные ключевые слова
   const relevantParagraphs = paragraphs.filter((para) => {
     const paraLower = para.text.toLowerCase();
     return relevantKeywords.some((keyword) => paraLower.includes(keyword));
   });
 
-  // Если найдено мало релевантных параграфов, возвращаем первые 30% текста
-  if (relevantParagraphs.length < 3 && type === "metadata") {
-    return paragraphs.slice(0, Math.max(3, Math.floor(paragraphs.length * 0.3)))
-      .map((p) => p.text)
+  const formatParagraphs = (items: Paragraph[]): string => {
+    return items
+      .map((p) => `[${p.id}] ${p.text}`)
       .join("\n\n");
+  };
+
+  // Если найдено мало релевантных параграфов, возвращаем первые 30% текста
+  if (relevantParagraphs.length < 3) {
+    const fallbackCount = Math.max(3, Math.floor(paragraphs.length * 0.3));
+    const fallbackParagraphs = paragraphs.slice(0, fallbackCount || 3);
+    return formatParagraphs(fallbackParagraphs);
   }
 
   // Возвращаем релевантные параграфы
-  return relevantParagraphs.map((p) => p.text).join("\n\n") || text.substring(0, Math.min(5000, text.length));
+  return formatParagraphs(relevantParagraphs);
 }
 
 /**

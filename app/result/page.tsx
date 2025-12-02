@@ -6,7 +6,6 @@ import ContractViewer from "@/components/ContractViewer";
 import ContractInterface from "@/components/ContractInterface";
 import { useParagraphHighlighter } from "@/components/ParagraphHighlighter";
 import Header from "@/components/Header";
-import MainNavigation from "@/components/MainNavigation";
 import { ParsedContract, SourceRef } from "@/types/contract";
 
 function ResultContent() {
@@ -15,7 +14,6 @@ function ResultContent() {
   const [contract, setContract] = useState<ParsedContract | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeMainTab, setActiveMainTab] = useState("obligations");
   const { highlightParagraphs, clearHighlight, scrollToParagraph } =
     useParagraphHighlighter();
 
@@ -108,17 +106,25 @@ function ResultContent() {
   }, [searchParams, router]);
 
   const handleShowSource = (sourceRefs: SourceRef[]) => {
+    console.log("handleShowSource вызван с sourceRefs:", sourceRefs);
     clearHighlight();
     const paragraphIds: string[] = [];
     sourceRefs.forEach((ref) => {
-      if (ref.paragraphIds) {
+      if (ref.paragraphIds && Array.isArray(ref.paragraphIds)) {
         paragraphIds.push(...ref.paragraphIds);
       }
     });
 
+    console.log("Извлеченные paragraphIds:", paragraphIds);
+
     if (paragraphIds.length > 0) {
-      highlightParagraphs(paragraphIds);
-      scrollToParagraph(paragraphIds[0]);
+      // Небольшая задержка для обеспечения рендеринга DOM
+      setTimeout(() => {
+        highlightParagraphs(paragraphIds);
+        scrollToParagraph(paragraphIds[0]);
+      }, 100);
+    } else {
+      console.warn("Не найдено paragraphIds в sourceRefs");
     }
   };
 
@@ -140,7 +146,6 @@ function ResultContent() {
   return (
     <div className="min-h-screen bg-white">
       <Header contractTitle={contractTitle} />
-      <MainNavigation activeTab={activeMainTab} onTabChange={setActiveMainTab} />
       
       {showRawJson ? (
         <div className="p-6">
@@ -158,7 +163,7 @@ function ResultContent() {
           </pre>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-144px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-80px)]">
           <div className="border-r border-gray-200 overflow-y-auto">
             <ContractViewer paragraphs={contract.paragraphs} />
           </div>
@@ -166,7 +171,6 @@ function ResultContent() {
             <ContractInterface 
               contract={contract} 
               onShowSource={handleShowSource}
-              activeMainTab={activeMainTab}
             />
           </div>
         </div>

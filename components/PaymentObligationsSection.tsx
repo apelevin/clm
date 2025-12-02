@@ -59,8 +59,28 @@ export default function PaymentObligationsSection({
 
   const getPartyColorClasses = (party: "customer" | "executor") => {
     return party === "customer"
-      ? "bg-blue-100 text-blue-800"
-      : "bg-green-100 text-green-800";
+      ? "bg-blue-200 text-blue-900"
+      : "bg-green-200 text-green-900";
+  };
+
+  const getPaymentTypeIcon = (purpose: string): string => {
+    const lowerPurpose = purpose.toLowerCase();
+    if (lowerPurpose.includes("лицензи") || lowerPurpose.includes("license")) {
+      return "📄";
+    }
+    if (lowerPurpose.includes("техническ") || lowerPurpose.includes("техзапас") || lowerPurpose.includes("запас")) {
+      return "⚙️";
+    }
+    if (lowerPurpose.includes("аналитик") || lowerPurpose.includes("идентификац") || lowerPurpose.includes("поведен")) {
+      return "🔍";
+    }
+    if (lowerPurpose.includes("штраф") || lowerPurpose.includes("неустойк") || lowerPurpose.includes("пеня")) {
+      return "⚠️";
+    }
+    if (lowerPurpose.includes("услуг") || lowerPurpose.includes("работ")) {
+      return "💼";
+    }
+    return "💰";
   };
 
   const handleShowSource = (obligation: PaymentObligation) => {
@@ -70,137 +90,121 @@ export default function PaymentObligationsSection({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm">
-      <h2 className="text-xl font-bold mb-4">Финансовые обязательства</h2>
+    <div className="space-y-4">
+      {obligations.map((obligation) => {
+        const hasSource = obligation.sourceRefs && obligation.sourceRefs.length > 0;
+        const scheduleText = formatSchedule(obligation.schedule);
+        const paymentIcon = getPaymentTypeIcon(obligation.purpose);
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Плательщик → Получатель
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Назначение
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Сумма
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                График платежей
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Условия
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Пункты договора
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Действия
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {obligations.map((obligation) => {
-              const hasSource = obligation.sourceRefs && obligation.sourceRefs.length > 0;
-              const scheduleText = formatSchedule(obligation.schedule);
-
-              return (
-                <tr
-                  key={obligation.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+        return (
+          <div
+            key={obligation.id}
+            className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow"
+          >
+            {/* Верхняя часть: Плательщик → Получатель и Сумма */}
+            <div className="flex items-start justify-between mb-4 gap-4">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span
+                  className={`px-2.5 py-1 text-xs font-medium rounded ${getPartyColorClasses(
+                    obligation.payer
+                  )}`}
                 >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${getPartyColorClasses(
-                          obligation.payer
-                        )}`}
-                      >
-                        {getPartyLabel(obligation.payer)}
-                      </span>
-                      <span className="text-gray-400">→</span>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${getPartyColorClasses(
-                          obligation.recipient
-                        )}`}
-                      >
-                        {getPartyLabel(obligation.recipient)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {obligation.purpose}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-semibold text-gray-900">
-                      {formatAmount(obligation.amount)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {scheduleText || (
-                      <span className="text-gray-400">Не указано</span>
-                    )}
-                    {obligation.schedule?.type === "installments" &&
-                      obligation.schedule.installments &&
-                      obligation.schedule.installments.length > 0 && (
-                        <details className="mt-1">
-                          <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
-                            Подробнее
-                          </summary>
-                          <div className="mt-2 space-y-1 pl-2">
-                            {obligation.schedule.installments.map((inst, idx) => (
-                              <div key={idx} className="text-xs text-gray-600">
-                                Платеж {inst.number}:{" "}
-                                {inst.amount.toLocaleString("ru-RU")}{" "}
-                                {inst.deadline ? `до ${inst.deadline}` : ""}
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {obligation.conditions || (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {obligation.relatedClauses &&
-                    obligation.relatedClauses.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {obligation.relatedClauses.map((clause, idx) => (
-                          <span
-                            key={idx}
-                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                          >
-                            {clause.section}
-                            {clause.paragraph && `.${clause.paragraph}`}
+                  {getPartyLabel(obligation.payer)}
+                </span>
+                <span className="text-gray-500 text-sm">→</span>
+                <span
+                  className={`px-2.5 py-1 text-xs font-medium rounded ${getPartyColorClasses(
+                    obligation.recipient
+                  )}`}
+                >
+                  {getPartyLabel(obligation.recipient)}
+                </span>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <span className="text-base font-bold font-mono text-gray-900 whitespace-nowrap">
+                  {formatAmount(obligation.amount)}
+                </span>
+              </div>
+            </div>
+
+            {/* Основная часть: Назначение с иконкой */}
+            <div className="mb-3">
+              <div className="flex items-start gap-2">
+                <span className="text-lg flex-shrink-0">{paymentIcon}</span>
+                <p className="text-sm font-normal text-gray-600 leading-relaxed flex-1 break-words min-w-0">
+                  {obligation.purpose}
+                </p>
+              </div>
+            </div>
+
+            {/* Нижняя часть: График и условия */}
+            <div className="space-y-2 pt-3 border-t border-gray-100">
+              {scheduleText && (
+                <div className="flex items-start gap-2">
+                  <span className="text-xs font-medium text-gray-500 flex-shrink-0">График:</span>
+                  <span className="text-sm font-normal text-gray-600 flex-1 break-words min-w-0">{scheduleText}</span>
+                </div>
+              )}
+              
+              {obligation.schedule?.type === "installments" &&
+                obligation.schedule.installments &&
+                obligation.schedule.installments.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800 font-medium">
+                      Подробнее о платежах
+                    </summary>
+                    <div className="mt-2 space-y-1.5 pl-4">
+                      {obligation.schedule.installments.map((inst, idx) => (
+                        <div key={idx} className="text-xs font-normal text-gray-600 break-words">
+                          Платеж {inst.number}:{" "}
+                          <span className="font-mono font-semibold">
+                            {inst.amount.toLocaleString("ru-RU")} {obligation.amount.currency}
                           </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {hasSource ? (
-                      <button
-                        onClick={() => handleShowSource(obligation)}
-                        className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          {inst.deadline ? ` до ${inst.deadline}` : ""}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
+              {obligation.conditions && (
+                <div className="flex items-start gap-2">
+                  <span className="text-xs font-medium text-gray-500 flex-shrink-0">Условия:</span>
+                  <span className="text-sm font-normal text-gray-600 flex-1 break-words min-w-0">{obligation.conditions}</span>
+                </div>
+              )}
+
+              {obligation.relatedClauses && obligation.relatedClauses.length > 0 && (
+                <div className="flex items-start gap-2 flex-wrap">
+                  <span className="text-xs font-medium text-gray-500 flex-shrink-0">Пункты:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {obligation.relatedClauses.map((clause, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded"
                       >
-                        Показать источник
-                      </button>
-                    ) : (
-                      <span className="text-gray-400 text-sm">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                        {clause.section}
+                        {clause.paragraph && `.${clause.paragraph}`}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {hasSource ? (
+                <div className="pt-2">
+                  <button
+                    onClick={() => handleShowSource(obligation)}
+                    className="text-sm font-normal text-purple-600 hover:text-purple-800 underline"
+                  >
+                    Показать источник
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

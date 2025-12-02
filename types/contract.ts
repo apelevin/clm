@@ -175,6 +175,8 @@ export interface BenchmarkComparison {
   requirement: string; // Требование (например, "обязано быть")
   status: "present" | "missing" | "partial"; // Статус в исходном тексте
   recommendation?: string; // Рекомендация
+  score?: number; // Процент соответствия (0-100)
+  description?: string; // Краткое описание стандарта
 }
 
 export interface ClauseRiskAnalysis {

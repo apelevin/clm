@@ -72,12 +72,23 @@ export default function ProvisionCard({
           </div>
         )}
 
-        {/* Чекбокс справа */}
-        <div className="flex items-center gap-2">
+        {/* Кнопки справа */}
+        <div className="flex items-center gap-4">
+          {hasSource ? (
+            <button
+              onClick={handleShowSource}
+              className={`${linkSize} font-normal text-purple-600 hover:text-purple-800 underline`}
+            >
+              Показать источник
+            </button>
+          ) : (
+            <span className={`${linkSize} font-normal text-gray-400`}>Источник не найден</span>
+          )}
+
           {typeof onAnalyzeRisk === "function" && (
             <button
               onClick={() => onAnalyzeRisk(provision)}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className={`${linkSize} font-medium text-blue-600 hover:text-blue-800`}
             >
               Проверить риски
             </button>

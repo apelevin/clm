@@ -1,9 +1,59 @@
 import { ParsedContract, ContractState, PaymentObligation, ContractStatus, ContractTask, RelativeDate } from "@/types/contract";
 
+/**
+ * Нормализует paragraphIds в sourceRefs, фильтруя только существующие ID
+ */
+function normalizeSourceRefs(sourceRefs: any[], validParagraphIds: Set<string>): any[] {
+  if (!Array.isArray(sourceRefs)) {
+    return [];
+  }
+
+  return sourceRefs.map((ref) => {
+    if (!ref || typeof ref !== "object") {
+      return ref;
+    }
+
+    if (ref.paragraphIds && Array.isArray(ref.paragraphIds)) {
+      // Фильтруем только существующие ID
+      const normalizedIds = ref.paragraphIds.filter((id: string) => 
+        validParagraphIds.has(id)
+      );
+
+      // Если все ID были отфильтрованы, возвращаем исходный ref без paragraphIds
+      if (normalizedIds.length === 0) {
+        return {
+          ...ref,
+          paragraphIds: undefined,
+        };
+      }
+
+      return {
+        ...ref,
+        paragraphIds: normalizedIds,
+      };
+    }
+
+    return ref;
+  }).filter((ref) => {
+    // Удаляем ref без paragraphIds
+    return ref.paragraphIds && ref.paragraphIds.length > 0;
+  });
+}
+
 export function validateParsedContract(data: any): ParsedContract {
   // Базовая валидация структуры
   if (!data || typeof data !== "object") {
     throw new Error("Invalid contract data structure");
+  }
+
+  // Создаем Set валидных ID параграфов для нормализации
+  const validParagraphIds = new Set<string>();
+  if (Array.isArray(data.paragraphs)) {
+    data.paragraphs.forEach((p: any) => {
+      if (p && p.id && typeof p.id === "string") {
+        validParagraphIds.add(p.id);
+      }
+    });
   }
 
   // Валидация и нормализация contractState
@@ -98,6 +148,9 @@ export function validateParsedContract(data: any): ParsedContract {
           priority: provision.priority === "secondary" ? "secondary" : "primary",
           visibleFor: provision.visibleFor || undefined,
           category, // Категория всегда устанавливается
+          sourceRefs: Array.isArray(provision.sourceRefs)
+            ? normalizeSourceRefs(provision.sourceRefs, validParagraphIds)
+            : [],
         };
       })
     : [];
@@ -164,7 +217,7 @@ export function validateParsedContract(data: any): ParsedContract {
             schedule: normalizedSchedule,
             conditions: obligation.conditions || undefined,
             sourceRefs: Array.isArray(obligation.sourceRefs)
-              ? obligation.sourceRefs
+              ? normalizeSourceRefs(obligation.sourceRefs, validParagraphIds)
               : [],
             relatedClauses: Array.isArray(obligation.relatedClauses)
               ? obligation.relatedClauses
@@ -222,7 +275,9 @@ export function validateParsedContract(data: any): ParsedContract {
                         : task.assignedTo === "both"
                         ? "both"
                         : "customer",
-                    sourceRefs: Array.isArray(task.sourceRefs) ? task.sourceRefs : [],
+                    sourceRefs: Array.isArray(task.sourceRefs) 
+                      ? normalizeSourceRefs(task.sourceRefs, validParagraphIds)
+                      : [],
                     relatedClauses: Array.isArray(task.relatedClauses)
                       ? task.relatedClauses
                       : undefined,
@@ -238,7 +293,9 @@ export function validateParsedContract(data: any): ParsedContract {
             id: state.id || `state_${Math.random().toString(36).substr(2, 9)}`,
             label: state.label || "Неизвестное состояние",
             description: state.description || undefined,
-            sourceRefs: Array.isArray(state.sourceRefs) ? state.sourceRefs : [],
+            sourceRefs: Array.isArray(state.sourceRefs) 
+              ? normalizeSourceRefs(state.sourceRefs, validParagraphIds)
+              : [],
             relatedClauses: Array.isArray(state.relatedClauses)
               ? state.relatedClauses
               : undefined,

@@ -12,7 +12,6 @@ import RiskAnalysisPanel from "./RiskAnalysisPanel";
 interface ContractInterfaceProps {
   contract: ParsedContract;
   onShowSource: (sourceRefs: SourceRef[]) => void;
-  activeMainTab?: string;
 }
 
 // Функция для автоматического определения категории (дублируем логику из валидатора для клиента)
@@ -53,7 +52,6 @@ function inferCategory(title: string, content: string): string {
 export default function ContractInterface({
   contract,
   onShowSource,
-  activeMainTab = "obligations",
 }: ContractInterfaceProps) {
   const { contractState, keyProvisions, paymentObligations, possibleStates } = contract;
   
@@ -99,7 +97,7 @@ export default function ContractInterface({
   }, [keyProvisions]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedParties, setSelectedParties] = useState<Set<PartyRole>>(
-    new Set(["customer", "executor", "both"])
+    new Set<PartyRole>(["customer", "executor", "both"])
   );
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [stateStartDate, setStateStartDate] = useState<Date | null>(null); // Дата наступления стадии
@@ -271,12 +269,12 @@ export default function ContractInterface({
 
   const handlePartyToggle = (party: PartyRole) => {
     setSelectedParties((prev) => {
-      const newSet = new Set(prev);
+      const newSet = new Set<PartyRole>(prev);
       if (newSet.has(party)) {
         newSet.delete(party);
         // Если все сняты, включаем все обратно
         if (newSet.size === 0) {
-          return new Set(["customer", "executor", "both"]);
+          return new Set<PartyRole>(["customer", "executor", "both"]);
         }
       } else {
         newSet.add(party);
@@ -331,140 +329,78 @@ export default function ContractInterface({
     setIsRiskLoading(false);
   };
 
-  // Показываем фильтры только для таба обязательств
-  const showObligationsFilters = activeMainTab === "obligations";
-
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
-      {/* Фильтры обязательств в стиле под-навигации */}
-      {showObligationsFilters && allCategories.length > 0 && (
-        <ObligationsFilters
-          allCategories={allCategories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          selectedParties={selectedParties}
-          onPartyToggle={handlePartyToggle}
-        />
-      )}
-
-      <div className="p-6">
-        {/* Контент в зависимости от выбранного таба */}
-        {activeMainTab === "obligations" && (
-        <>
-      {/* Сетка ключевых положений */}
-      {keyProvisions.length > 0 ? (
-        <>
-          {/* Основные положения */}
-          {filteredPrimaryProvisions.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {filteredPrimaryProvisions.map((provision) => (
-                  <ProvisionCard
-                    key={provision.id}
-                    provision={provision}
-                    onShowSource={onShowSource}
-                    onAnalyzeRisk={handleAnalyzeRisk}
-                  />
-                ))}
-            </div>
-          )}
-
-          {/* Второстепенные положения */}
-          {filteredSecondaryProvisions.length > 0 && (
-            <>
-              {filteredPrimaryProvisions.length > 0 && (
-                <div className="my-6">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Прочие обязательства</h3>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredSecondaryProvisions.map((provision) => (
-                  <ProvisionCard
-                    key={provision.id}
-                    provision={provision}
-                    onShowSource={onShowSource}
-                    onAnalyzeRisk={handleAnalyzeRisk}
-                  />
-                ))}
+      <div className="p-6 space-y-8">
+        {/* 1. Договор */}
+        {(contractState.number || contractState.date || contractState.city || contractState.totalAmount) && (
+          <section>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Договор</h2>
+            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="space-y-2 text-sm">
+                {contractState.number && (
+                  <div>
+                    <span className="font-medium">Номер:</span> {contractState.number}
+                  </div>
+                )}
+                {contractState.date && (
+                  <div>
+                    <span className="font-medium">Дата:</span> {contractState.date}
+                  </div>
+                )}
+                {contractState.city && (
+                  <div>
+                    <span className="font-medium">Город:</span> {contractState.city}
+                  </div>
+                )}
+                {contractState.totalAmount && 
+                 contractState.totalAmount.amount != null && (
+                  <div className="mt-4">
+                    <span className="font-medium">Сумма:</span>{" "}
+                    {typeof contractState.totalAmount.amount === 'number' 
+                      ? contractState.totalAmount.amount.toLocaleString("ru-RU")
+                      : contractState.totalAmount.amount}{" "}
+                    {contractState.totalAmount.currency || "RUB"}
+                  </div>
+                )}
               </div>
-            </>
-          )}
-
-          {/* Сообщение, если ничего не найдено после фильтрации */}
-          {(selectedCategory || selectedParties.size < 3) &&
-            filteredPrimaryProvisions.length === 0 &&
-            filteredSecondaryProvisions.length === 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-                Не найдено обязательств по выбранным фильтрам
-              </div>
-            )}
-        </>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-          Не найдено обязательств по договору
-        </div>
-      )}
-        </>
-      )}
-
-        {/* Контент для других табов */}
-        {activeMainTab === "contract" && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-4">Договор</h2>
-            <div className="space-y-2 text-sm">
-              {contractState.number && (
-                <div>
-                  <span className="font-medium">Номер:</span> {contractState.number}
-                </div>
-              )}
-              {contractState.date && (
-                <div>
-                  <span className="font-medium">Дата:</span> {contractState.date}
-                </div>
-              )}
-              {contractState.city && (
-                <div>
-                  <span className="font-medium">Город:</span> {contractState.city}
-                </div>
-              )}
-              {contractState.parties && (
-                <div className="mt-4 space-y-1">
-                  {contractState.parties.customer && (
-                    <div>
-                      <span className="font-medium">Заказчик:</span>{" "}
-                      {contractState.parties.customer.fullName}
-                    </div>
-                  )}
-                  {contractState.parties.executor && (
-                    <div>
-                      <span className="font-medium">Исполнитель:</span>{" "}
-                      {contractState.parties.executor.fullName}
-                    </div>
-                  )}
-                </div>
-              )}
-              {contractState.totalAmount && 
-               contractState.totalAmount.amount != null && (
-                <div className="mt-4">
-                  <span className="font-medium">Сумма:</span>{" "}
-                  {typeof contractState.totalAmount.amount === 'number' 
-                    ? contractState.totalAmount.amount.toLocaleString("ru-RU")
-                    : contractState.totalAmount.amount}{" "}
-                  {contractState.totalAmount.currency || "RUB"}
-                </div>
-              )}
             </div>
-          </div>
+          </section>
         )}
 
-        {activeMainTab === "finance" && paymentObligations && paymentObligations.length > 0 && (
-          <PaymentObligationsSection
-            obligations={paymentObligations}
-            onShowSource={onShowSource}
-          />
+        {/* 2. Стороны */}
+        {contractState.parties && (
+          <section>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Стороны</h2>
+            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="space-y-4">
+                {contractState.parties.customer && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Заказчик</h3>
+                    <p className="text-gray-700">{contractState.parties.customer.fullName}</p>
+                    {contractState.parties.customer.name && (
+                      <p className="text-sm text-gray-500">{contractState.parties.customer.name}</p>
+                    )}
+                  </div>
+                )}
+                {contractState.parties.executor && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Исполнитель</h3>
+                    <p className="text-gray-700">{contractState.parties.executor.fullName}</p>
+                    {contractState.parties.executor.name && (
+                      <p className="text-sm text-gray-500">{contractState.parties.executor.name}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
-        {activeMainTab === "status" && statesWithDraft && statesWithDraft.length > 0 && (
-          <>
+        {/* 3. Состояние */}
+        {statesWithDraft && statesWithDraft.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Состояние</h2>
             <ContractStatesSection
               states={statesWithDraft}
               selectedState={selectedState}
@@ -487,48 +423,103 @@ export default function ContractInterface({
               }
               return null;
             })()}
-          </>
+          </section>
         )}
 
-        {activeMainTab === "subject" && contractState.subject && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-bold mb-3">Предмет договора</h2>
-            <p className="text-gray-700 leading-relaxed">{contractState.subject}</p>
-          </div>
-        )}
-
-        {activeMainTab === "parties" && contractState.parties && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-bold mb-4">Стороны договора</h2>
-            <div className="space-y-4">
-              {contractState.parties.customer && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Заказчик</h3>
-                  <p className="text-gray-700">{contractState.parties.customer.fullName}</p>
-                  {contractState.parties.customer.name && (
-                    <p className="text-sm text-gray-500">{contractState.parties.customer.name}</p>
-                  )}
-                </div>
-              )}
-              {contractState.parties.executor && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Исполнитель</h3>
-                  <p className="text-gray-700">{contractState.parties.executor.fullName}</p>
-                  {contractState.parties.executor.name && (
-                    <p className="text-sm text-gray-500">{contractState.parties.executor.name}</p>
-                  )}
-                </div>
-              )}
+        {/* 4. Предмет */}
+        {contractState.subject && (
+          <section>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Предмет</h2>
+            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <p className="text-gray-700 leading-relaxed">{contractState.subject}</p>
             </div>
-          </div>
+          </section>
         )}
 
-        {activeMainTab === "agreement" && (
+        {/* 5. Финансы */}
+        {paymentObligations && paymentObligations.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Финансы</h2>
+            <PaymentObligationsSection
+              obligations={paymentObligations}
+              onShowSource={onShowSource}
+            />
+          </section>
+        )}
+
+        {/* 6. Обязательства */}
+        <section>
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Обязательства</h2>
+          {/* Фильтры обязательств */}
+          {allCategories.length > 0 && (
+            <ObligationsFilters
+              allCategories={allCategories}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              selectedParties={selectedParties}
+              onPartyToggle={handlePartyToggle}
+            />
+          )}
+          {keyProvisions.length > 0 ? (
+            <>
+              {/* Основные положения */}
+              {filteredPrimaryProvisions.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {filteredPrimaryProvisions.map((provision) => (
+                    <ProvisionCard
+                      key={provision.id}
+                      provision={provision}
+                      onShowSource={onShowSource}
+                      onAnalyzeRisk={handleAnalyzeRisk}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Второстепенные положения */}
+              {filteredSecondaryProvisions.length > 0 && (
+                <>
+                  {filteredPrimaryProvisions.length > 0 && (
+                    <div className="my-6">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-4">Прочие обязательства</h3>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredSecondaryProvisions.map((provision) => (
+                      <ProvisionCard
+                        key={provision.id}
+                        provision={provision}
+                        onShowSource={onShowSource}
+                        onAnalyzeRisk={handleAnalyzeRisk}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Сообщение, если ничего не найдено после фильтрации */}
+              {(selectedCategory || selectedParties.size < 3) &&
+                filteredPrimaryProvisions.length === 0 &&
+                filteredSecondaryProvisions.length === 0 && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+                    Не найдено обязательств по выбранным фильтрам
+                  </div>
+                )}
+            </>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+              Не найдено обязательств по договору
+            </div>
+          )}
+        </section>
+
+        {/* 7. Согласование */}
+        <section>
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Согласование</h2>
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-bold mb-4">Согласование</h2>
             <p className="text-gray-600">Функционал согласования в разработке</p>
           </div>
-        )}
+        </section>
       </div>
 
       {/* Боковая панель анализа рисков по обязательству */}

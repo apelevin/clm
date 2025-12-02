@@ -197,8 +197,9 @@ export async function POST(request: NextRequest) {
           });
           content = result.output_text || "";
           if (result.usage) {
-            inputTokens = result.usage.prompt_tokens || 0;
-            outputTokens = result.usage.completion_tokens || 0;
+            // ResponseUsage может иметь другую структуру, используем безопасный доступ
+            inputTokens = (result.usage as any).prompt_tokens || (result.usage as any).input_tokens || 0;
+            outputTokens = (result.usage as any).completion_tokens || (result.usage as any).output_tokens || 0;
             totalTokens = result.usage.total_tokens || 0;
           }
         } else {

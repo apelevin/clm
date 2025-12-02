@@ -46,7 +46,9 @@ const RISK_PROMPT = `Ты — опытный юрист по договорно�
      * element: элемент для сравнения (например: "Уведомление", "Пропорциональность")
      * requirement: требование (например: "обязано быть", "должна быть")
      * status: "present" | "missing" | "partial"
-     * recommendation: опциональная рекомендация
+     * score: число от 0 до 100 (процент соответствия рыночному стандарту)
+     * description: краткое описание стандарта (1 строка, объясняет почему пункт важен)
+     * recommendation: опциональная рекомендация (может быть многострочной, с маркерами)
 
 7. ТАЙМЛАЙН СОБЫТИЙ (timeline):
    - Извлеки из текста все даты, сроки, периоды
@@ -98,7 +100,14 @@ const RISK_PROMPT = `Ты — опытный юрист по договорно�
     "edges": [{"from": "payment_delay", "to": "work_suspension", "relationship": "активирует"}]
   },
   "benchmark": [
-    {"element": "Уведомление", "requirement": "обязано быть", "status": "missing", "recommendation": "Добавить требование письменного уведомления"}
+    {
+      "element": "Уведомление",
+      "requirement": "обязано быть",
+      "status": "missing",
+      "score": 0,
+      "description": "Норма должна быть четко определена (форма, канал, последствия)",
+      "recommendation": "• Ввести срок ответа (30 дней)\n• Указать допустимые способы направления"
+    }
   ],
   "timeline": [
     {"day": 0, "event": "счет", "description": "Выставление счета"},
@@ -182,8 +191,9 @@ export async function POST(req: NextRequest) {
         });
         content = result.output_text || "";
         if (result.usage) {
-          inputTokens = result.usage.prompt_tokens || 0;
-          outputTokens = result.usage.completion_tokens || 0;
+          // ResponseUsage может иметь другую структуру, используем безопасный доступ
+          inputTokens = (result.usage as any).prompt_tokens || (result.usage as any).input_tokens || 0;
+          outputTokens = (result.usage as any).completion_tokens || (result.usage as any).output_tokens || 0;
           totalTokens = result.usage.total_tokens || 0;
         }
       } else {
@@ -315,12 +325,25 @@ export async function POST(req: NextRequest) {
     const benchmark = Array.isArray(parsed.benchmark)
       ? parsed.benchmark
           .filter((b: any) => b && b.element && b.requirement && b.status)
-          .map((b: any) => ({
-            element: String(b.element),
-            requirement: String(b.requirement),
-            status: b.status === "present" || b.status === "partial" ? b.status : "missing",
-            recommendation: b.recommendation ? String(b.recommendation) : undefined,
-          }))
+          .map((b: any) => {
+            // Вычисляем score на основе status, если не предоставлен
+            let score = typeof b.score === "number" 
+              ? Math.max(0, Math.min(100, b.score))
+              : b.status === "present" 
+                ? 90 
+                : b.status === "partial" 
+                  ? 50 
+                  : 10;
+            
+            return {
+              element: String(b.element),
+              requirement: String(b.requirement),
+              status: b.status === "present" || b.status === "partial" ? b.status : "missing",
+              score,
+              description: b.description ? String(b.description) : undefined,
+              recommendation: b.recommendation ? String(b.recommendation) : undefined,
+            };
+          })
       : [];
 
     const timeline = Array.isArray(parsed.timeline)
