@@ -13,6 +13,7 @@ function ResultContent() {
   const router = useRouter();
   const [contract, setContract] = useState<ParsedContract | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const { highlightParagraphs, clearHighlight, scrollToParagraph } =
     useParagraphHighlighter();
@@ -24,54 +25,29 @@ function ResultContent() {
     try {
       const storedData = sessionStorage.getItem("contractData");
       if (storedData) {
-        console.log("Данные найдены в sessionStorage, длина:", storedData.length);
         try {
           const parsed = JSON.parse(storedData);
-          console.log("Данные успешно распарсены:", {
-            paragraphs: parsed.paragraphs?.length || 0,
-            provisions: parsed.keyProvisions?.length || 0,
-            payments: parsed.paymentObligations?.length || 0,
-            states: parsed.possibleStates?.length || 0,
-            hasContractState: !!parsed.contractState,
-          });
-          
-          // Проверяем, что данные валидны
-          if (!parsed.paragraphs || !Array.isArray(parsed.paragraphs)) {
-            throw new Error("Невалидная структура данных: отсутствуют paragraphs");
-          }
-          
           if (mounted) {
             setContract(parsed);
             setIsLoading(false);
-            console.log("Данные установлены в состояние, контракт готов к отображению");
             // Очищаем sessionStorage только после успешной установки состояния
             setTimeout(() => {
               sessionStorage.removeItem("contractData");
-              console.log("sessionStorage очищен");
             }, 1000);
           }
           return;
-        } catch (parseError: any) {
+        } catch (parseError) {
           console.error("Ошибка парсинга данных из sessionStorage:", parseError);
-          console.error("Детали ошибки:", parseError?.message, parseError?.stack);
           sessionStorage.removeItem("contractData");
-          if (mounted) {
-            setIsLoading(false);
-            router.push("/");
-          }
         }
-      } else {
-        console.log("Данные не найдены в sessionStorage");
       }
-    } catch (storageError: any) {
+    } catch (storageError) {
       console.error("Ошибка чтения из sessionStorage:", storageError);
-      console.error("Детали ошибки:", storageError?.message);
     }
 
     // Fallback: пробуем получить из URL параметров (для обратной совместимости)
     const data = searchParams.get("data");
     if (data) {
-      console.log("Попытка получить данные из URL параметров");
       try {
         const parsed = JSON.parse(decodeURIComponent(data));
         if (mounted) {
@@ -90,10 +66,8 @@ function ResultContent() {
     }
 
     // Если данных нет ни в sessionStorage, ни в URL, ждём немного и перенаправляем
-    console.log("Данные не найдены, ожидание перед перенаправлением...");
     const timeout = setTimeout(() => {
       if (mounted && !contract) {
-        console.log("Таймаут ожидания данных, перенаправление на главную");
         setIsLoading(false);
         router.push("/");
       }
@@ -106,25 +80,17 @@ function ResultContent() {
   }, [searchParams, router]);
 
   const handleShowSource = (sourceRefs: SourceRef[]) => {
-    console.log("handleShowSource вызван с sourceRefs:", sourceRefs);
     clearHighlight();
     const paragraphIds: string[] = [];
     sourceRefs.forEach((ref) => {
-      if (ref.paragraphIds && Array.isArray(ref.paragraphIds)) {
+      if (ref.paragraphIds) {
         paragraphIds.push(...ref.paragraphIds);
       }
     });
 
-    console.log("Извлеченные paragraphIds:", paragraphIds);
-
     if (paragraphIds.length > 0) {
-      // Небольшая задержка для обеспечения рендеринга DOM
-      setTimeout(() => {
-        highlightParagraphs(paragraphIds);
-        scrollToParagraph(paragraphIds[0]);
-      }, 100);
-    } else {
-      console.warn("Не найдено paragraphIds в sourceRefs");
+      highlightParagraphs(paragraphIds);
+      scrollToParagraph(paragraphIds[0]);
     }
   };
 
@@ -145,7 +111,11 @@ function ResultContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header contractTitle={contractTitle} />
+      <Header
+        contractTitle={contractTitle}
+        isDocumentVisible={isDocumentVisible}
+        onToggleDocumentView={() => setIsDocumentVisible((prev) => !prev)}
+      />
       
       {showRawJson ? (
         <div className="p-6">
@@ -163,15 +133,18 @@ function ResultContent() {
           </pre>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-80px)]">
-          <div className="border-r border-gray-200 overflow-y-auto">
-            <ContractViewer paragraphs={contract.paragraphs} />
-          </div>
+        <div
+          className={`grid grid-cols-1 h-[calc(100vh-72px)] ${
+            isDocumentVisible ? "lg:grid-cols-2" : ""
+          }`}
+        >
+          {isDocumentVisible && (
+            <div className="overflow-y-auto border-r border-gray-200">
+              <ContractViewer paragraphs={contract.paragraphs} />
+            </div>
+          )}
           <div className="overflow-y-auto bg-gray-50">
-            <ContractInterface 
-              contract={contract} 
-              onShowSource={handleShowSource}
-            />
+            <ContractInterface contract={contract} onShowSource={handleShowSource} />
           </div>
         </div>
       )}
@@ -190,4 +163,3 @@ export default function ResultPage() {
     </Suspense>
   );
 }
-
