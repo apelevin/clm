@@ -8,6 +8,8 @@ import ContractStatesSection from "./ContractStatesSection";
 import StateTasksSection from "./StateTasksSection";
 import ObligationsFilters from "./ObligationsFilters";
 import RiskAnalysisPanel from "./RiskAnalysisPanel";
+import ContractExecutionStatus from "./ContractExecutionStatus";
+import { useCost } from "@/contexts/CostContext";
 
 interface ContractInterfaceProps {
   contract: ParsedContract;
@@ -54,6 +56,7 @@ export default function ContractInterface({
   contract,
   onShowSource,
 }: ContractInterfaceProps) {
+  const { addCost } = useCost();
   const { contractState, keyProvisions, paymentObligations, possibleStates } = contract;
   
   // Добавляем состояние "Проект договора" по умолчанию, если его нет
@@ -313,7 +316,13 @@ export default function ContractInterface({
         throw new Error(data?.error || "Не удалось выполнить анализ рисков");
       }
 
-      const data: ClauseRiskAnalysis = await response.json();
+      const data: ClauseRiskAnalysis & { _cost?: any } = await response.json();
+      
+      // Добавляем стоимость, если она есть в ответе
+      if (data._cost?.cost !== undefined && typeof data._cost.cost === "number") {
+        addCost(data._cost.cost);
+      }
+      
       setProvisionRiskResult(data);
     } catch (error: any) {
       console.error("Ошибка анализа рисков:", error);
@@ -334,9 +343,11 @@ export default function ContractInterface({
     <div className="h-full overflow-y-auto bg-gray-50">
       <div className="p-6 space-y-8">
         {/* 1. Договор */}
-        {(contractState.number || contractState.date || contractState.city || contractState.totalAmount) && (
-          <section>
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">Договор</h2>
+        <section>
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Договор</h2>
+          {/* Статус исполнения договора */}
+          <ContractExecutionStatus contractNumber={contractState.number} />
+          {(contractState.number || contractState.date || contractState.city || contractState.totalAmount) && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
               <div className="space-y-2 text-base font-normal text-gray-900">
                 {contractState.number && (
@@ -366,8 +377,8 @@ export default function ContractInterface({
                 )}
               </div>
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* 2. Стороны */}
         {contractState.parties && (
