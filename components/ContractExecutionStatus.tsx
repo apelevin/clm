@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { logActivity } from "@/lib/activity-logger";
 
 export type ExecutionStatus = "normal" | "at_risk" | "overdue";
 
@@ -157,6 +158,26 @@ export default function ContractExecutionStatus({
         timestamp: new Date(),
       };
       saveUpdate(update);
+      
+      // Логируем публикацию статуса исполнения
+      const statusLabels: Record<ExecutionStatus, string> = {
+        normal: "В норме",
+        at_risk: "Под риском",
+        overdue: "Просрочено",
+      };
+      
+      logActivity(contractNumber, {
+        level: "contract",
+        type: "execution_status_posted",
+        user: "pelevin",
+        description: `posted an update`,
+        icon: "update",
+        color: selectedStatus === "normal" ? "green" : selectedStatus === "at_risk" ? "orange" : "red",
+        metadata: {
+          status: statusLabels[selectedStatus],
+        },
+      });
+      
       // Очищаем форму, но оставляем её открытой для добавления следующего статуса
       setUpdateText("");
       setSelectedStatus("normal");
@@ -182,6 +203,17 @@ export default function ContractExecutionStatus({
         comments: [...(lastUpdate.comments || []), newComment],
       };
       saveUpdate(updatedUpdate);
+      
+      // Логируем добавление комментария к статусу исполнения
+      logActivity(contractNumber, {
+        level: "contract",
+        type: "execution_status_comment_added",
+        user: "pelevin",
+        description: `posted an update`,
+        icon: "comment",
+        color: "green",
+      });
+      
       setCommentText("");
       setIsCommenting(false);
     }

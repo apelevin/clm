@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, memo } from "react";
-import { KeyProvision, ClauseRiskAnalysis, RiskParty } from "@/types/contract";
+import { useState, memo, useMemo } from "react";
+import { KeyProvision, ClauseRiskAnalysis, RiskParty, ProblematicElement } from "@/types/contract";
+import ProblematicElementCard from "./ProblematicElementCard";
 
 interface RiskAnalysisPanelProps {
   provision: KeyProvision;
@@ -9,6 +10,7 @@ interface RiskAnalysisPanelProps {
   onClose: () => void;
   isLoading?: boolean;
   error?: string | null;
+  contractNumber?: string;
 }
 
 function RiskAnalysisPanel({
@@ -17,6 +19,7 @@ function RiskAnalysisPanel({
   onClose,
   isLoading = false,
   error = null,
+  contractNumber,
 }: RiskAnalysisPanelProps) {
   const [showSuggestedClause, setShowSuggestedClause] = useState(false);
 
@@ -208,12 +211,22 @@ function RiskAnalysisPanel({
             <div className="mb-4">
               <h4 className="text-sm font-semibold text-gray-900 mb-2">Проблемные элементы в формулировке</h4>
               <ul className="space-y-2">
-                {riskResult.legalRiskMap.problematicElements.map((element, idx) => (
-                  <li key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <div className="text-sm font-semibold text-gray-900 mb-1">{element.element}</div>
-                    <div className="text-xs font-normal text-gray-900">{element.issue}</div>
-                  </li>
-                ))}
+                {riskResult.legalRiskMap.problematicElements.map((element, idx) => {
+                  // Генерируем уникальный ID для элемента, если его нет
+                  const elementWithId: ProblematicElement = {
+                    ...element,
+                    id: element.id || `${provision.id}_element_${idx}`,
+                  };
+                  return (
+                    <ProblematicElementCard
+                      key={elementWithId.id || idx}
+                      element={elementWithId}
+                      provisionId={provision.id}
+                      index={idx}
+                      contractNumber={contractNumber}
+                    />
+                  );
+                })}
               </ul>
             </div>
           )}

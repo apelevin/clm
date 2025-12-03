@@ -3,6 +3,7 @@ import { openai } from "@/lib/openai";
 import { ClauseRiskAnalysis } from "@/types/contract";
 import { metricsCollector } from "@/lib/metrics";
 import { cache, generateRiskCacheKey } from "@/lib/cache";
+import { calculateCost } from "@/lib/cost-calculator";
 
 const RISK_PROMPT = `Ты — опытный юрист по договорному праву с экспертизой в CLM (Contract Lifecycle Management). Тебе будет передана формулировка обязательства из коммерческого договора (на русском языке) и, возможно, полный текст договора для анализа зависимостей.
 
@@ -145,7 +146,26 @@ export async function POST(req: NextRequest) {
     const cachedResult = cache.get<ClauseRiskAnalysis>(cacheKey);
     if (cachedResult) {
       console.log("Возвращаем результат из кэша для:", cacheKey);
-      return NextResponse.json(cachedResult);
+      // При использовании кэша не добавляем стоимость (результат уже был оплачен ранее)
+      return NextResponse.json({
+        ...cachedResult,
+        _cost: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          cost: 0,
+          costBreakdown: {
+            inputCost: 0,
+            outputCost: 0,
+            totalCost: 0,
+            tokenUsage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0,
+            },
+          },
+        },
+      });
     }
 
     modelName = process.env.OPENAI_MODEL || "gpt-5.1";
@@ -254,7 +274,7 @@ export async function POST(req: NextRequest) {
       parsed.riskLevel === "high" || parsed.riskLevel === "medium" ? parsed.riskLevel : "low";
 
     const risks = Array.isArray(parsed.risks)
-      ? parsed.risks.map((r) => String(r)).filter((r) => r.trim().length > 0)
+      ? parsed.risks.map((r: any) => String(r)).filter((r: string) => r.trim().length > 0)
       : [];
 
     const suggestedClause =
@@ -284,7 +304,12 @@ export async function POST(req: NextRequest) {
     const legalRiskMap = parsed.legalRiskMap && typeof parsed.legalRiskMap === "object"
       ? {
           problematicElements: Array.isArray(parsed.legalRiskMap.problematicElements)
-            ? parsed.legalRiskMap.problematicElements.filter((e: any) => e && e.element && e.issue)
+            ? parsed.legalRiskMap.problematicElements
+                .filter((e: any) => e && e.element && e.issue)
+                .map((e: any, idx: number) => ({
+                  ...e,
+                  id: e.id || `element_${Date.now()}_${idx}`, // Генерируем уникальный ID если его нет
+                }))
             : [],
           consequences: Array.isArray(parsed.legalRiskMap.consequences)
             ? parsed.legalRiskMap.consequences.filter((c: any) => c && c.description && c.affectedParty)
@@ -380,6 +405,16 @@ export async function POST(req: NextRequest) {
     outputSize = new Blob([JSON.stringify(result)]).size;
     const duration = Date.now() - startTime;
 
+    // Рассчитываем стоимость
+    const costBreakdown = calculateCost(inputTokens, outputTokens, false);
+    const costInfo = {
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      cost: costBreakdown.totalCost,
+      costBreakdown,
+    };
+
     // Логируем метрики
     metricsCollector.log({
       endpoint,
@@ -393,7 +428,10 @@ export async function POST(req: NextRequest) {
       model: modelName,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      _cost: costInfo,
+    });
   } catch (error: any) {
     const duration = Date.now() - startTime;
     

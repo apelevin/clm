@@ -9,7 +9,9 @@ import StateTasksSection from "./StateTasksSection";
 import ObligationsFilters from "./ObligationsFilters";
 import RiskAnalysisPanel from "./RiskAnalysisPanel";
 import ContractExecutionStatus from "./ContractExecutionStatus";
+import ActivityFeed from "./ActivityFeed";
 import { useCost } from "@/contexts/CostContext";
+import { logActivity } from "@/lib/activity-logger";
 
 interface ContractInterfaceProps {
   contract: ParsedContract;
@@ -288,7 +290,30 @@ export default function ContractInterface({
   };
 
   const handleStateChange = (stateId: string | null) => {
+    const previousState = selectedState;
+    const previousStateObj = statesWithDraft.find((s) => s.id === previousState);
+    const newStateObj = statesWithDraft.find((s) => s.id === stateId);
+    
     setSelectedState(stateId);
+    
+    // Логируем изменение статуса договора
+    if (previousState !== stateId && newStateObj) {
+      const previousLabel = previousStateObj?.label || "не выбрано";
+      const newLabel = newStateObj.label;
+      
+      logActivity(contractState.number, {
+        level: "contract",
+        type: "contract_status_changed",
+        user: "pelevin",
+        description: `changed status from ${previousLabel} to ${newLabel}`,
+        icon: "status_change",
+        color: "orange",
+        metadata: {
+          previousValue: previousLabel,
+          newValue: newLabel,
+        },
+      });
+    }
   };
 
   const handleAnalyzeRisk = async (provision: KeyProvision) => {
@@ -532,6 +557,9 @@ export default function ContractInterface({
             <p className="text-base font-normal text-gray-600">Функционал согласования в разработке</p>
           </div>
         </section>
+
+        {/* 8. Activity Feed */}
+        <ActivityFeed contractNumber={contractState.number} />
       </div>
 
       {/* Боковая панель анализа рисков по обязательству */}
@@ -542,6 +570,7 @@ export default function ContractInterface({
           onClose={handleCloseRiskPanel}
           isLoading={isRiskLoading}
           error={riskError}
+          contractNumber={contractState.number}
         />
       )}
 

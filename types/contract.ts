@@ -137,9 +137,32 @@ export interface RiskIndicator {
   consequenceSeverity: ConsequenceSeverity;
 }
 
+export type ProblematicElementStatus = "confirmed" | "rejected" | "disputed" | "neutral" | "closed";
+
+export interface ProblematicElementComment {
+  status: ProblematicElementStatus;
+  text: string;
+  mentions?: string[]; // ["@Иван", "@Мария"]
+  author: string;
+  timestamp: Date;
+}
+
+export interface ProblematicElementChange {
+  id: string;
+  changedBy: string;
+  previousStatus: ProblematicElementStatus | null;
+  newStatus: ProblematicElementStatus;
+  arguments: string; // Комментарий к изменению
+  timestamp: Date;
+}
+
 export interface ProblematicElement {
+  id?: string; // Уникальный идентификатор (генерируется при необходимости)
   element: string; // Описание проблемного элемента
   issue: string; // В чем проблема
+  status?: ProblematicElementStatus; // Статус обработки риска
+  comment?: ProblematicElementComment; // Текущий комментарий
+  changeHistory?: ProblematicElementChange[]; // Журнал изменений
 }
 
 export interface RiskConsequence {
@@ -198,5 +221,54 @@ export interface ClauseRiskAnalysis {
   benchmark: BenchmarkComparison[]; // Сравнение с рыночными стандартами
   timeline: TimelineEvent[]; // Мини-таймлайн событий
   differences?: string[]; // Краткие отличия рекомендованной формулировки
+}
+
+// Типы для Activity Log (логирование действий)
+
+export type ActivityLevel = "contract" | "obligation" | "risk";
+
+export type ContractActivityType =
+  | "contract_status_changed"
+  | "execution_status_posted"
+  | "execution_status_comment_added"
+  | "contract_parameter_changed";
+
+export type ObligationActivityType =
+  | "obligation_added"
+  | "obligation_modified"
+  | "obligation_closed"
+  | "obligation_marked_completed"
+  | "obligation_marked_overdue"
+  | "obligation_deadline_changed";
+
+export type RiskActivityType =
+  | "risk_status_confirmed"
+  | "risk_status_rejected"
+  | "risk_status_disputed"
+  | "risk_status_closed"
+  | "risk_comment_added"
+  | "risk_status_changed";
+
+export type ActivityType = ContractActivityType | ObligationActivityType | RiskActivityType;
+
+export type ActivityIcon = "update" | "status_change" | "comment" | "risk" | "obligation";
+export type ActivityColor = "red" | "green" | "orange" | "gray" | "blue";
+
+export interface ActivityLogEntry {
+  id: string;
+  level: ActivityLevel;
+  type: ActivityType;
+  user: string;
+  description: string; // Например: "posted an update" или "changed status from X to Y"
+  timestamp: Date;
+  icon?: ActivityIcon;
+  color?: ActivityColor;
+  metadata?: {
+    previousValue?: string;
+    newValue?: string;
+    elementId?: string;
+    provisionId?: string;
+    status?: string;
+  };
 }
 
