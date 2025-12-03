@@ -50,11 +50,13 @@ export default function ProvisionCard({
 
   return (
     <div className={`bg-white border ${borderColor} rounded-lg ${cardPadding} shadow-sm hover:shadow-md transition-shadow`}>
-      <h3 className={`${titleSize} font-bold text-gray-900 mb-3`}>
+      <h3 className={`${titleSize} font-bold text-gray-900 mb-3 break-words`}>
         {provision.title}
       </h3>
 
-      <p className={`${contentSize} font-normal text-gray-600 mb-4 leading-relaxed`}>{provision.content}</p>
+      <p className={`${contentSize} font-normal text-gray-600 mb-4 leading-relaxed break-words`}>
+        {provision.content}
+      </p>
 
       <div className="flex items-center justify-between">
         {/* Ссылки на пункты договора слева */}

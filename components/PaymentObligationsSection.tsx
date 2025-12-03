@@ -63,26 +63,6 @@ export default function PaymentObligationsSection({
       : "bg-green-200 text-green-900";
   };
 
-  const getPaymentTypeIcon = (purpose: string): string => {
-    const lowerPurpose = purpose.toLowerCase();
-    if (lowerPurpose.includes("лицензи") || lowerPurpose.includes("license")) {
-      return "📄";
-    }
-    if (lowerPurpose.includes("техническ") || lowerPurpose.includes("техзапас") || lowerPurpose.includes("запас")) {
-      return "⚙️";
-    }
-    if (lowerPurpose.includes("аналитик") || lowerPurpose.includes("идентификац") || lowerPurpose.includes("поведен")) {
-      return "🔍";
-    }
-    if (lowerPurpose.includes("штраф") || lowerPurpose.includes("неустойк") || lowerPurpose.includes("пеня")) {
-      return "⚠️";
-    }
-    if (lowerPurpose.includes("услуг") || lowerPurpose.includes("работ")) {
-      return "💼";
-    }
-    return "💰";
-  };
-
   const handleShowSource = (obligation: PaymentObligation) => {
     if (obligation.sourceRefs && obligation.sourceRefs.length > 0) {
       onShowSource(obligation.sourceRefs);
@@ -94,7 +74,6 @@ export default function PaymentObligationsSection({
       {obligations.map((obligation) => {
         const hasSource = obligation.sourceRefs && obligation.sourceRefs.length > 0;
         const scheduleText = formatSchedule(obligation.schedule);
-        const paymentIcon = getPaymentTypeIcon(obligation.purpose);
 
         return (
           <div
@@ -102,7 +81,7 @@ export default function PaymentObligationsSection({
             className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow"
           >
             {/* Верхняя часть: Плательщик → Получатель и Сумма */}
-            <div className="flex items-start justify-between mb-4 gap-4">
+            <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span
                   className={`px-2.5 py-1 text-xs font-medium rounded ${getPartyColorClasses(
@@ -120,22 +99,19 @@ export default function PaymentObligationsSection({
                   {getPartyLabel(obligation.recipient)}
                 </span>
               </div>
-              <div className="text-right flex-shrink-0">
-                <span className="text-base font-bold font-mono text-gray-900 whitespace-nowrap">
+              <div className="text-right flex-shrink min-w-0">
+                <span className="text-base font-bold font-mono text-gray-900 break-words" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   {formatAmount(obligation.amount)}
                 </span>
               </div>
             </div>
 
-            {/* Основная часть: Назначение с иконкой */}
-            <div className="mb-3">
-              <div className="flex items-start gap-2">
-                <span className="text-lg flex-shrink-0">{paymentIcon}</span>
-                <p className="text-sm font-normal text-gray-600 leading-relaxed flex-1 break-words min-w-0">
-                  {obligation.purpose}
-                </p>
-              </div>
-            </div>
+            {/* Описание обязательства */}
+            {obligation.purpose && (
+              <p className="text-sm font-normal text-gray-700 leading-relaxed break-words mb-3">
+                {obligation.purpose}
+              </p>
+            )}
 
             {/* Нижняя часть: График и условия */}
             <div className="space-y-2 pt-3 border-t border-gray-100">

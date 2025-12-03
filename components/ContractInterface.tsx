@@ -12,6 +12,7 @@ import RiskAnalysisPanel from "./RiskAnalysisPanel";
 interface ContractInterfaceProps {
   contract: ParsedContract;
   onShowSource: (sourceRefs: SourceRef[]) => void;
+  activeMainTab?: string;
 }
 
 // Функция для автоматического определения категории (дублируем логику из валидатора для клиента)

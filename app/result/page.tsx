@@ -134,7 +134,7 @@ function ResultContent() {
         </div>
       ) : (
         <div
-          className={`grid grid-cols-1 h-[calc(100vh-72px)] ${
+          className={`grid grid-cols-1 h-[calc(100vh-64px)] ${
             isDocumentVisible ? "lg:grid-cols-2" : ""
           }`}
         >

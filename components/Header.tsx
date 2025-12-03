@@ -2,9 +2,15 @@
 
 interface HeaderProps {
   contractTitle?: string;
+  isDocumentVisible?: boolean;
+  onToggleDocumentView?: () => void;
 }
 
-export default function Header({ contractTitle = "Договор услуг" }: HeaderProps) {
+export default function Header({ 
+  contractTitle = "Договор услуг",
+  isDocumentVisible = true,
+  onToggleDocumentView,
+}: HeaderProps) {
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -38,10 +44,23 @@ export default function Header({ contractTitle = "Договор услуг" }: 
             Спросить AI
           </button>
           
-          <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            type="button"
+            onClick={onToggleDocumentView}
+            aria-pressed={isDocumentVisible}
+            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+              isDocumentVisible
+                ? "text-blue-600 bg-blue-50 border border-blue-100"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+            title={isDocumentVisible ? "Скрыть текст договора" : "Показать текст договора"}
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
+            <span className="sr-only">
+              {isDocumentVisible ? "Скрыть текст договора" : "Показать текст договора"}
+            </span>
           </button>
         </div>
       </div>

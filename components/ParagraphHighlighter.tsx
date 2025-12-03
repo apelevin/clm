@@ -3,9 +3,12 @@
 import { useRef } from "react";
 
 function findScrollContainer(element: HTMLElement | null): HTMLElement | null {
-  let current = element?.parentElement ?? null;
+  let current: HTMLElement | null = element;
   while (current) {
-    if (current.classList.contains("overflow-y-auto")) {
+    if (
+      current.dataset.scrollContainer === "true" ||
+      current.classList.contains("overflow-y-auto")
+    ) {
       return current;
     }
     current = current.parentElement;
