@@ -52,7 +52,7 @@ export default function ContractUpload({
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Загрузите текст договора</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">Загрузите текст договора</h1>
 
       <div className="space-y-4">
         <div>
@@ -82,14 +82,14 @@ export default function ContractUpload({
             />
           </label>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm font-normal text-gray-600">
             MVP: поддерживаются файлы .txt и текст, вставленный вручную.
           </p>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm font-normal text-red-700">{error}</p>
           </div>
         )}
 

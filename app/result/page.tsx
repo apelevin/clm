@@ -97,8 +97,10 @@ function ResultContent() {
   if (isLoading || !contract) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">
-          {isLoading ? "Загрузка данных..." : "Данные не найдены"}
+        <div>
+          <p className="text-base font-normal text-gray-600">
+            {isLoading ? "Загрузка данных..." : "Данные не найдены"}
+          </p>
         </div>
       </div>
     );
@@ -120,7 +122,7 @@ function ResultContent() {
       {showRawJson ? (
         <div className="p-6">
           <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center mb-4">
-            <h1 className="text-xl font-bold">JSON данные</h1>
+            <h1 className="text-2xl font-bold text-gray-900">JSON данные</h1>
             <button
               onClick={() => setShowRawJson(false)}
               className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm"
@@ -138,14 +140,14 @@ function ResultContent() {
             isDocumentVisible ? "lg:grid-cols-2" : ""
           }`}
         >
-          {isDocumentVisible && (
-            <div className="overflow-y-auto border-r border-gray-200">
-              <ContractViewer paragraphs={contract.paragraphs} />
-            </div>
-          )}
           <div className="overflow-y-auto bg-gray-50">
             <ContractInterface contract={contract} onShowSource={handleShowSource} />
           </div>
+          {isDocumentVisible && (
+            <div className="overflow-y-auto border-l border-gray-200">
+              <ContractViewer paragraphs={contract.paragraphs} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -156,7 +158,9 @@ export default function ResultPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Загрузка...</div>
+        <div>
+          <p className="text-base font-normal text-gray-600">Загрузка...</p>
+        </div>
       </div>
     }>
       <ResultContent />

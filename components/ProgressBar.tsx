@@ -33,18 +33,18 @@ export default function ProgressBar({
     <div className="max-w-2xl mx-auto p-6">
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-semibold text-gray-900">
             {status === "loading" && STEPS[currentStep - 1]}
             {status === "success" && "Обработка завершена"}
             {status === "error" && "Ошибка обработки"}
           </span>
           <div className="flex items-center gap-3">
             {elapsedTime !== undefined && status === "loading" && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs font-normal text-gray-600">
                 Прошло: {formatTime(elapsedTime)}
               </span>
             )}
-            <span className="text-sm text-gray-500">{Math.round(progress)}%</span>
+            <span className="text-sm font-normal text-gray-600">{Math.round(progress)}%</span>
           </div>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -63,9 +63,9 @@ export default function ProgressBar({
 
       {status === "error" && errorMessage && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-red-700 font-semibold mb-2">Ошибка обработки</div>
-          <div className="text-red-600 text-sm mb-3">{errorMessage}</div>
-          <div className="text-xs text-red-500">
+          <div className="text-red-700 font-semibold mb-2 text-base">Ошибка обработки</div>
+          <div className="text-red-600 text-sm font-normal mb-3">{errorMessage}</div>
+          <div className="text-xs font-normal text-red-600">
             <p>Проверьте:</p>
             <ul className="list-disc list-inside mt-1 space-y-1">
               <li>Файл .env.local существует и содержит OPENAI_API_KEY</li>
@@ -97,7 +97,7 @@ export default function ProgressBar({
           </div>
           {currentStep === totalSteps && (
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
+              <p className="text-sm font-normal text-blue-900">
                 ⏳ Обработка может занять 30-60 секунд в зависимости от размера договора.
                 Пожалуйста, подождите...
               </p>

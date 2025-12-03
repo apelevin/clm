@@ -108,7 +108,7 @@ export default function PaymentObligationsSection({
 
             {/* Описание обязательства */}
             {obligation.purpose && (
-              <p className="text-sm font-normal text-gray-700 leading-relaxed break-words mb-3">
+              <p className="text-base font-normal text-gray-900 leading-relaxed break-words mb-3">
                 {obligation.purpose}
               </p>
             )}
@@ -118,7 +118,7 @@ export default function PaymentObligationsSection({
               {scheduleText && (
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-medium text-gray-500 flex-shrink-0">График:</span>
-                  <span className="text-sm font-normal text-gray-600 flex-1 break-words min-w-0">{scheduleText}</span>
+                  <span className="text-sm font-normal text-gray-900 flex-1 break-words min-w-0">{scheduleText}</span>
                 </div>
               )}
               
@@ -131,7 +131,7 @@ export default function PaymentObligationsSection({
                     </summary>
                     <div className="mt-2 space-y-1.5 pl-4">
                       {obligation.schedule.installments.map((inst, idx) => (
-                        <div key={idx} className="text-xs font-normal text-gray-600 break-words">
+                        <div key={idx} className="text-xs font-normal text-gray-900 break-words">
                           Платеж {inst.number}:{" "}
                           <span className="font-mono font-semibold">
                             {inst.amount.toLocaleString("ru-RU")} {obligation.amount.currency}
@@ -146,7 +146,7 @@ export default function PaymentObligationsSection({
               {obligation.conditions && (
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-medium text-gray-500 flex-shrink-0">Условия:</span>
-                  <span className="text-sm font-normal text-gray-600 flex-1 break-words min-w-0">{obligation.conditions}</span>
+                  <span className="text-sm font-normal text-gray-900 flex-1 break-words min-w-0">{obligation.conditions}</span>
                 </div>
               )}
 

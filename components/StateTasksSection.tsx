@@ -78,8 +78,8 @@ export default function StateTasksSection({
         : formatDeadline(deadlineDate);
 
       return (
-        <div className={`text-sm ${textColor} mt-1`}>
-          <span className="font-medium">Срок:</span> {deadlineText}
+        <div className={`text-sm font-normal ${textColor} mt-1`}>
+          <span className="font-semibold">Срок:</span> {deadlineText}
           {isOverdue && (
             <span className="ml-2 text-red-600" title="Просрочено">
               ⚠️
@@ -95,9 +95,9 @@ export default function StateTasksSection({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm">
-      <h2 className="text-xl font-bold mb-2">Задачи по текущему состоянию</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        Состояние: <span className="font-medium">{stateLabel}</span>
+      <h2 className="text-xl font-bold mb-2 text-gray-900">Задачи по текущему состоянию</h2>
+      <p className="text-sm font-normal text-gray-600 mb-4">
+        Состояние: <span className="font-semibold">{stateLabel}</span>
       </p>
 
       {primaryTasks.length > 0 && (
@@ -124,7 +124,7 @@ export default function StateTasksSection({
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium text-gray-900">{task.label}</h3>
+                      <h3 className="text-base font-semibold text-gray-900">{task.label}</h3>
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded ${getAssignedToColorClasses(
                           task.assignedTo
@@ -134,7 +134,7 @@ export default function StateTasksSection({
                       </span>
                     </div>
                     {task.description && (
-                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                      <p className="text-sm font-normal text-gray-900 mb-2">{task.description}</p>
                     )}
                     {renderTaskDeadline(task)}
                     {hasSource && (
@@ -181,7 +181,7 @@ export default function StateTasksSection({
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-medium text-gray-900">
+                        <h3 className="text-sm font-semibold text-gray-900">
                           {task.label}
                         </h3>
                         <span
@@ -193,7 +193,7 @@ export default function StateTasksSection({
                         </span>
                       </div>
                       {task.description && (
-                        <p className="text-xs text-gray-600 mb-1">
+                        <p className="text-xs font-normal text-gray-900 mb-1">
                           {task.description}
                         </p>
                       )}

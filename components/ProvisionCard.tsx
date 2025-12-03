@@ -42,8 +42,8 @@ export default function ProvisionCard({
   // Единые стили для всех карточек (без различий по приоритету)
   const cardPadding = "p-4";
   const borderColor = "border-purple-200";
-  const titleSize = "text-lg";
-  const contentSize = "text-sm";
+  const titleSize = "text-xl"; // h3 в CommonMark
+  const contentSize = "text-base"; // параграф в CommonMark
   const linkSize = "text-sm";
 
   const [isChecked, setIsChecked] = useState(false);
@@ -54,7 +54,7 @@ export default function ProvisionCard({
         {provision.title}
       </h3>
 
-      <p className={`${contentSize} font-normal text-gray-600 mb-4 leading-relaxed break-words`}>
+      <p className={`${contentSize} font-normal text-gray-900 mb-4 leading-relaxed break-words`}>
         {provision.content}
       </p>
 

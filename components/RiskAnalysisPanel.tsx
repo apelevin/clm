@@ -95,7 +95,7 @@ function RiskAnalysisPanel({
     return (
       <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[600px] bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Анализ рисков</h2>
+          <h2 className="text-xl font-bold text-gray-900">Анализ рисков</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -108,7 +108,9 @@ function RiskAnalysisPanel({
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-sm text-gray-600">
-            Анализируем риски формулировки… Это может занять несколько секунд.
+            <p className="text-sm font-normal text-gray-600">
+              Анализируем риски формулировки… Это может занять несколько секунд.
+            </p>
           </div>
         </div>
       </div>
@@ -119,7 +121,7 @@ function RiskAnalysisPanel({
     return (
       <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[600px] bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Анализ рисков</h2>
+          <h2 className="text-xl font-bold text-gray-900">Анализ рисков</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -148,9 +150,9 @@ function RiskAnalysisPanel({
       {/* Заголовок */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between sticky top-0 bg-white z-10">
         <div className="flex-1 mr-4">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">{provision.title}</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{provision.title}</h2>
           {riskResult.summary && (
-            <p className="text-sm font-medium text-gray-700 bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200">
+            <p className="text-sm font-normal text-gray-900 bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-200">
               {riskResult.summary}
             </p>
           )}
@@ -170,7 +172,7 @@ function RiskAnalysisPanel({
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
         {/* 1. Индикаторы риска (мини-дашборд) */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Индикаторы риска</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Индикаторы риска</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 rounded-lg p-3">
               <div className="text-xs text-gray-600 mb-1">Уровень риска</div>
@@ -199,17 +201,17 @@ function RiskAnalysisPanel({
 
         {/* 2. Юридическая карта риска */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Юридическая карта риска</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Юридическая карта риска</h3>
           
           {/* Проблемные элементы */}
           {riskResult.legalRiskMap.problematicElements.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-xs font-medium text-gray-700 mb-2">Проблемные элементы в формулировке</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Проблемные элементы в формулировке</h4>
               <ul className="space-y-2">
                 {riskResult.legalRiskMap.problematicElements.map((element, idx) => (
                   <li key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <div className="text-sm font-medium text-gray-900 mb-1">{element.element}</div>
-                    <div className="text-xs text-gray-600">{element.issue}</div>
+                    <div className="text-sm font-semibold text-gray-900 mb-1">{element.element}</div>
+                    <div className="text-xs font-normal text-gray-900">{element.issue}</div>
                   </li>
                 ))}
               </ul>
@@ -219,12 +221,12 @@ function RiskAnalysisPanel({
           {/* Последствия */}
           {riskResult.legalRiskMap.consequences.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-xs font-medium text-gray-700 mb-2">Что может случиться</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Что может случиться</h4>
               <ul className="space-y-2">
                 {riskResult.legalRiskMap.consequences.map((consequence, idx) => (
                   <li key={idx} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <div className="flex items-start justify-between mb-1">
-                      <div className="text-sm text-gray-900 flex-1">{consequence.description}</div>
+                      <div className="text-sm font-normal text-gray-900 flex-1">{consequence.description}</div>
                       <span className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${getPartyColor(consequence.affectedParty)}`}>
                         {getPartyLabel(consequence.affectedParty)}
                       </span>
@@ -266,17 +268,17 @@ function RiskAnalysisPanel({
             <div className="mt-3 space-y-3">
               {riskResult.differences && riskResult.differences.length > 0 && (
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                  <h4 className="text-xs font-medium text-gray-700 mb-2">Краткие отличия:</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Краткие отличия:</h4>
                   <ul className="space-y-1">
                     {riskResult.differences.map((diff, idx) => (
-                      <li key={idx} className="text-sm text-gray-800">• {diff}</li>
+                      <li key={idx} className="text-sm font-normal text-gray-900">• {diff}</li>
                     ))}
                   </ul>
                 </div>
               )}
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Рекомендованная формулировка:</h4>
-                <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">Рекомендованная формулировка:</h4>
+                <p className="text-sm font-normal text-gray-900 whitespace-pre-line leading-relaxed">
                   {riskResult.suggestedClause}
                 </p>
               </div>
@@ -286,21 +288,21 @@ function RiskAnalysisPanel({
 
         {/* 4. Impact-анализ */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Impact-анализ</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Impact-анализ</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <h4 className="text-xs font-medium text-gray-900 mb-2">Если оставить как есть →</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Если оставить как есть →</h4>
               <ul className="space-y-1">
                 {riskResult.impactAnalysis.ifLeftAsIs.map((item, idx) => (
-                  <li key={idx} className="text-xs text-gray-700">• {item}</li>
+                  <li key={idx} className="text-xs font-normal text-gray-900">• {item}</li>
                 ))}
               </ul>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <h4 className="text-xs font-medium text-gray-900 mb-2">Если исправить →</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Если исправить →</h4>
               <ul className="space-y-1">
                 {riskResult.impactAnalysis.ifFixed.map((item, idx) => (
-                  <li key={idx} className="text-xs text-gray-700">• {item}</li>
+                  <li key={idx} className="text-xs font-normal text-gray-900">• {item}</li>
                 ))}
               </ul>
             </div>
@@ -312,7 +314,7 @@ function RiskAnalysisPanel({
         {/* 7. Мини-таймлайн событий */}
         {riskResult.timeline.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Мини-таймлайн событий</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Мини-таймлайн событий</h3>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <div className="space-y-3">
                 {riskResult.timeline.map((event, idx) => (
@@ -321,9 +323,9 @@ function RiskAnalysisPanel({
                       {event.day >= 0 ? `День ${event.day}` : `День ${event.day}`}
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{event.event}</div>
+                      <div className="text-sm font-semibold text-gray-900">{event.event}</div>
                       {event.description && (
-                        <div className="text-xs text-gray-600 mt-1">{event.description}</div>
+                        <div className="text-xs font-normal text-gray-900 mt-1">{event.description}</div>
                       )}
                     </div>
                   </div>

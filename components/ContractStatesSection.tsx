@@ -61,8 +61,8 @@ export default function ContractStatesSection({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm">
-      <h2 className="text-xl font-bold mb-2">Состояние договора</h2>
-      <p className="text-sm text-gray-600 mb-4">
+      <h2 className="text-xl font-bold mb-2 text-gray-900">Состояние договора</h2>
+      <p className="text-sm font-normal text-gray-600 mb-4">
         Выберите текущее состояние договора
       </p>
       
@@ -75,11 +75,11 @@ export default function ContractStatesSection({
           <div className="flex-1">
             {selectedStateObj ? (
               <>
-                <div className="font-medium text-gray-900">
+                <div className="text-base font-semibold text-gray-900">
                   {selectedStateObj.label}
                 </div>
                 {selectedStateObj.description && (
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="text-sm font-normal text-gray-600 mt-1">
                     {selectedStateObj.description}
                   </div>
                 )}
@@ -116,11 +116,11 @@ export default function ContractStatesSection({
                   selectedState === state.id ? "bg-blue-50" : ""
                 }`}
               >
-                <div className="font-medium text-gray-900">
+                <div className="text-base font-semibold text-gray-900">
                   {state.label}
                 </div>
                 {state.description && (
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="text-sm font-normal text-gray-600 mt-1">
                     {state.description}
                   </div>
                 )}

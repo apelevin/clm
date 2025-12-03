@@ -338,26 +338,26 @@ export default function ContractInterface({
           <section>
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Договор</h2>
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-base font-normal text-gray-900">
                 {contractState.number && (
                   <div>
-                    <span className="font-medium">Номер:</span> {contractState.number}
+                    <span className="font-semibold">Номер:</span> {contractState.number}
                   </div>
                 )}
                 {contractState.date && (
                   <div>
-                    <span className="font-medium">Дата:</span> {contractState.date}
+                    <span className="font-semibold">Дата:</span> {contractState.date}
                   </div>
                 )}
                 {contractState.city && (
                   <div>
-                    <span className="font-medium">Город:</span> {contractState.city}
+                    <span className="font-semibold">Город:</span> {contractState.city}
                   </div>
                 )}
                 {contractState.totalAmount && 
                  contractState.totalAmount.amount != null && (
                   <div className="mt-4">
-                    <span className="font-medium">Сумма:</span>{" "}
+                    <span className="font-semibold">Сумма:</span>{" "}
                     {typeof contractState.totalAmount.amount === 'number' 
                       ? contractState.totalAmount.amount.toLocaleString("ru-RU")
                       : contractState.totalAmount.amount}{" "}
@@ -377,19 +377,19 @@ export default function ContractInterface({
               <div className="space-y-4">
                 {contractState.parties.customer && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Заказчик</h3>
-                    <p className="text-gray-700">{contractState.parties.customer.fullName}</p>
+                    <h3 className="text-xl font-bold mb-2 text-gray-900">Заказчик</h3>
+                    <p className="text-base font-normal text-gray-900">{contractState.parties.customer.fullName}</p>
                     {contractState.parties.customer.name && (
-                      <p className="text-sm text-gray-500">{contractState.parties.customer.name}</p>
+                      <p className="text-sm font-normal text-gray-600">{contractState.parties.customer.name}</p>
                     )}
                   </div>
                 )}
                 {contractState.parties.executor && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Исполнитель</h3>
-                    <p className="text-gray-700">{contractState.parties.executor.fullName}</p>
+                    <h3 className="text-xl font-bold mb-2 text-gray-900">Исполнитель</h3>
+                    <p className="text-base font-normal text-gray-900">{contractState.parties.executor.fullName}</p>
                     {contractState.parties.executor.name && (
-                      <p className="text-sm text-gray-500">{contractState.parties.executor.name}</p>
+                      <p className="text-sm font-normal text-gray-600">{contractState.parties.executor.name}</p>
                     )}
                   </div>
                 )}
@@ -432,7 +432,7 @@ export default function ContractInterface({
           <section>
             <h2 className="text-2xl font-bold mb-4 text-gray-900">Предмет</h2>
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <p className="text-gray-700 leading-relaxed">{contractState.subject}</p>
+              <p className="text-base font-normal text-gray-900 leading-relaxed">{contractState.subject}</p>
             </div>
           </section>
         )}
@@ -482,7 +482,7 @@ export default function ContractInterface({
                 <>
                   {filteredPrimaryProvisions.length > 0 && (
                     <div className="my-6">
-                      <h3 className="text-lg font-semibold text-gray-700 mb-4">Прочие обязательства</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">Прочие обязательства</h3>
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -502,14 +502,14 @@ export default function ContractInterface({
               {(selectedCategory || selectedParties.size < 3) &&
                 filteredPrimaryProvisions.length === 0 &&
                 filteredSecondaryProvisions.length === 0 && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-                    Не найдено обязательств по выбранным фильтрам
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                    <p className="text-base font-normal text-gray-600">Не найдено обязательств по выбранным фильтрам</p>
                   </div>
                 )}
             </>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-              Не найдено обязательств по договору
+            <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+              <p className="text-base font-normal text-gray-600">Не найдено обязательств по договору</p>
             </div>
           )}
         </section>
@@ -518,7 +518,7 @@ export default function ContractInterface({
         <section>
           <h2 className="text-2xl font-bold mb-4 text-gray-900">Согласование</h2>
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <p className="text-gray-600">Функционал согласования в разработке</p>
+            <p className="text-base font-normal text-gray-600">Функционал согласования в разработке</p>
           </div>
         </section>
       </div>

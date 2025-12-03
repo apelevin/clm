@@ -17,8 +17,8 @@ export default function Header({
         {/* Левая часть */}
         <div className="flex items-center gap-4">
           <div>
-            <div className="text-sm text-gray-600">Customer Support</div>
-            <div className="text-lg font-semibold text-gray-900">{contractTitle}</div>
+            <div className="text-sm font-normal text-gray-600">Customer Support</div>
+            <div className="text-xl font-bold text-gray-900">{contractTitle}</div>
           </div>
           <button className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
             Согласование

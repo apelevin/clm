@@ -17,7 +17,7 @@ export default function ContractViewer({ paragraphs }: ContractViewerProps) {
           <p
             key={paragraph.id}
             id={paragraph.id}
-            className="text-sm leading-relaxed transition-all duration-200"
+            className="text-base font-normal leading-relaxed text-gray-900 transition-all duration-200"
           >
             {paragraph.text}
           </p>
