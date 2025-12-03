@@ -21,7 +21,34 @@ function ResultContent() {
   useEffect(() => {
     let mounted = true;
 
-    // Сначала пробуем получить данные из sessionStorage
+    // Проверяем наличие параметра contract в URL (загрузка по ID)
+    const contractId = searchParams.get("contract");
+    if (contractId) {
+      // Загружаем договор по ID через API
+      fetch(`/api/contracts/${contractId}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Договор не найден");
+          }
+          return response.json();
+        })
+        .then((data: ParsedContract) => {
+          if (mounted) {
+            setContract(data);
+            setIsLoading(false);
+          }
+        })
+        .catch((error) => {
+          console.error("Ошибка при загрузке договора:", error);
+          if (mounted) {
+            setIsLoading(false);
+            router.push("/");
+          }
+        });
+      return;
+    }
+
+    // Сначала пробуем получить данные из sessionStorage (для обратной совместимости)
     try {
       const storedData = sessionStorage.getItem("contractData");
       if (storedData) {

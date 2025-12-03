@@ -5,6 +5,9 @@ import { splitTextIntoParagraphs } from "@/lib/text-processor";
 import { metricsCollector } from "@/lib/metrics";
 import { parseContractParallel, mergeParseResults } from "@/lib/parallel-parser";
 import { ParsedContract } from "@/types/contract";
+import { calculateCost } from "@/lib/cost-calculator";
+import fs from "fs";
+import path from "path";
 
 const SYSTEM_PROMPT = `Ты — эксперт по анализу юридических договоров. Твоя задача — извлечь структурированную информацию из текста договора и вернуть её в строгом JSON формате.
 
@@ -112,6 +115,39 @@ const SYSTEM_PROMPT = `Ты — эксперт по анализу юридич�
 
 ВАЖНО: Всегда указывай sourceRefs для каждого ключевого положения, финансового обязательства, состояния и задачи. Без sourceRefs элемент не может быть отображён в интерфейсе.`;
 
+/**
+ * Ищет предварительно сгенерированный JSON контракта по тексту
+ */
+function findPreGeneratedContract(text: string): ParsedContract | null {
+  const parsedDir = path.join(process.cwd(), 'contracts', 'parsed');
+  
+  if (!fs.existsSync(parsedDir)) {
+    return null;
+  }
+  
+  const files = fs.readdirSync(parsedDir).filter(f => f.endsWith('.json'));
+  
+  // Ищем по точному совпадению originalText
+  for (const file of files) {
+    try {
+      const filePath = path.join(parsedDir, file);
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(fileContent) as ParsedContract;
+      
+      // Проверяем точное совпадение текста
+      if (parsed.originalText === text) {
+        console.log(`✓ Найден предварительно сгенерированный контракт: ${file}`);
+        return parsed;
+      }
+    } catch (e) {
+      // Пропускаем файлы с ошибками парсинга
+      continue;
+    }
+  }
+  
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   const endpoint = "/api/parse-contract";
@@ -147,6 +183,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Сначала проверяем наличие предварительно сгенерированного JSON
+    const preGenerated = findPreGeneratedContract(text);
+    if (preGenerated) {
+      console.log("Используется предварительно сгенерированный контракт (без обращения к OpenAI API)");
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      return NextResponse.json({
+        ...preGenerated,
+        _cost: { cost: 0 }, // Нет затрат на API
+      });
+    }
+
+    console.log("Предварительно сгенерированный контракт не найден, используем OpenAI API");
     modelName = process.env.OPENAI_MODEL || "gpt-5.1";
     let parsedData: any;
 
@@ -297,6 +347,16 @@ export async function POST(request: NextRequest) {
     outputSize = new Blob([JSON.stringify(validatedData)]).size;
     const duration = Date.now() - startTime;
 
+    // Рассчитываем стоимость
+    const costBreakdown = calculateCost(inputTokens, outputTokens, false);
+    const costInfo = {
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      cost: costBreakdown.totalCost,
+      costBreakdown,
+    };
+
     // Логируем метрики
     const finalInputSize = useParallel ? inputSize : (new Blob([SYSTEM_PROMPT]).size + new Blob([`Проанализируй следующий договор:\n\n${text}`]).size);
     metricsCollector.log({
@@ -311,7 +371,10 @@ export async function POST(request: NextRequest) {
       model: modelName,
     });
 
-    return NextResponse.json(validatedData);
+    return NextResponse.json({
+      ...validatedData,
+      _cost: costInfo,
+    });
   } catch (error: any) {
     const duration = Date.now() - startTime;
     

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CostProvider } from "@/contexts/CostContext";
 
 export const metadata: Metadata = {
   title: "Contract Parser",
@@ -13,7 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body>
+        <CostProvider>
+          {children}
+        </CostProvider>
+      </body>
     </html>
   );
 }
