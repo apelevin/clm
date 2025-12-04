@@ -17,6 +17,7 @@ interface ContractInterfaceProps {
   contract: ParsedContract;
   onShowSource: (sourceRefs: SourceRef[]) => void;
   activeMainTab?: string;
+  onTaskClick?: (task: ContractTask, stateLabel: string, stateId: string) => void;
 }
 
 // Функция для автоматического определения категории (дублируем логику из валидатора для клиента)
@@ -57,6 +58,7 @@ function inferCategory(title: string, content: string): string {
 export default function ContractInterface({
   contract,
   onShowSource,
+  onTaskClick,
 }: ContractInterfaceProps) {
   const { addCost } = useCost();
   const { contractState, keyProvisions, paymentObligations, possibleStates } = contract;
@@ -455,6 +457,7 @@ export default function ContractInterface({
                     tasks={selectedStateObj.tasks}
                     onShowSource={onShowSource}
                     stateStartDate={stateStartDate}
+                    onTaskClick={(task) => onTaskClick?.(task, selectedStateObj.label, selectedStateObj.id)}
                   />
                 );
               }

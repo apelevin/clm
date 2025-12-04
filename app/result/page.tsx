@@ -6,7 +6,10 @@ import ContractViewer from "@/components/ContractViewer";
 import ContractInterface from "@/components/ContractInterface";
 import { useParagraphHighlighter } from "@/components/ParagraphHighlighter";
 import Header from "@/components/Header";
-import { ParsedContract, SourceRef } from "@/types/contract";
+import TaskDetailsPanel from "@/components/TaskDetailsPanel";
+import { ParsedContract, SourceRef, ContractTask } from "@/types/contract";
+import { TaskListItem } from "@/app/api/tasks/route";
+import { calculateTaskDeadline } from "@/lib/date-calculator";
 
 function ResultContent() {
   const searchParams = useSearchParams();
@@ -15,6 +18,7 @@ function ResultContent() {
   const [showRawJson, setShowRawJson] = useState(false);
   const [isDocumentVisible, setIsDocumentVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<TaskListItem | null>(null);
   const { highlightParagraphs, clearHighlight, scrollToParagraph } =
     useParagraphHighlighter();
 
@@ -121,6 +125,70 @@ function ResultContent() {
     }
   };
 
+  // Преобразуем ContractTask в TaskListItem для панели
+  const convertTaskToListItem = (task: ContractTask, stateLabel: string, stateId: string): TaskListItem => {
+    const contractId = searchParams.get("contract") || "unknown";
+    const contractState = contract?.contractState || {};
+    const contractNumber = contractState.number;
+    
+    // Определяем статус задачи из localStorage или используем "open" по умолчанию
+    const taskStatuses = typeof window !== "undefined" 
+      ? JSON.parse(localStorage.getItem("task_statuses") || "{}")
+      : {};
+    const status = taskStatuses[`${contractId}_${stateId}_${task.id}`] || "open";
+
+    // Рассчитываем дедлайн, если есть
+    let deadline: string | undefined;
+    if (task.deadline && contract?.possibleStates) {
+      const state = contract.possibleStates.find(s => s.id === stateId);
+      if (state?.stateStartDate) {
+        try {
+          const stateStartDate = new Date(state.stateStartDate);
+          const deadlineDate = calculateTaskDeadline(task.deadline, stateStartDate);
+          deadline = deadlineDate.toISOString();
+        } catch (e) {
+          // Игнорируем ошибки расчета
+        }
+      }
+    }
+
+    return {
+      id: `${contractId}_${stateId}_${task.id}`,
+      contractId,
+      contractNumber,
+      stateId,
+      stateLabel,
+      stateDescription: contract?.possibleStates?.find(s => s.id === stateId)?.description,
+      taskId: task.id,
+      label: task.label,
+      description: task.description,
+      assignedTo: task.assignedTo,
+      priority: task.priority,
+      status: status as TaskListItem["status"],
+      deadline,
+      deadlineDescription: task.deadline?.description,
+      category: undefined, // Можно определить из связанных положений
+      customer: contractState.parties?.customer?.name || contractState.parties?.customer?.fullName,
+      executor: contractState.parties?.executor?.name || contractState.parties?.executor?.fullName,
+      lastChanged: new Date().toISOString(),
+    };
+  };
+
+  const handleTaskClick = (task: ContractTask, stateLabel: string, stateId: string) => {
+    const taskListItem = convertTaskToListItem(task, stateLabel, stateId);
+    setSelectedTask(taskListItem);
+  };
+
+  const handleClosePanel = () => {
+    setSelectedTask(null);
+  };
+
+  const handleStatusChange = (taskId: string, newStatus: TaskListItem["status"]) => {
+    if (selectedTask && selectedTask.id === taskId) {
+      setSelectedTask({ ...selectedTask, status: newStatus });
+    }
+  };
+
   if (isLoading || !contract) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -168,7 +236,11 @@ function ResultContent() {
           }`}
         >
           <div className="overflow-y-auto bg-gray-50">
-            <ContractInterface contract={contract} onShowSource={handleShowSource} />
+            <ContractInterface 
+              contract={contract} 
+              onShowSource={handleShowSource}
+              onTaskClick={handleTaskClick}
+            />
           </div>
           {isDocumentVisible && (
             <div className="overflow-y-auto border-l border-gray-200">
@@ -176,6 +248,15 @@ function ResultContent() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Боковая панель деталей задачи */}
+      {selectedTask && (
+        <TaskDetailsPanel
+          task={selectedTask}
+          onClose={handleClosePanel}
+          onStatusChange={handleStatusChange}
+        />
       )}
     </div>
   );

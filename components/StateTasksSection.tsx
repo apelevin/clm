@@ -14,6 +14,7 @@ interface StateTasksSectionProps {
   tasks: ContractTask[];
   onShowSource: (sourceRefs: SourceRef[]) => void;
   stateStartDate: Date | null;
+  onTaskClick?: (task: ContractTask) => void;
 }
 
 export default function StateTasksSection({
@@ -21,6 +22,7 @@ export default function StateTasksSection({
   tasks,
   onShowSource,
   stateStartDate,
+  onTaskClick,
 }: StateTasksSectionProps) {
   if (tasks.length === 0) {
     return null;
@@ -114,7 +116,8 @@ export default function StateTasksSection({
             return (
               <div
                 key={task.id}
-                className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                onClick={() => onTaskClick?.(task)}
+                className={`border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors ${onTaskClick ? 'cursor-pointer' : ''}`}
               >
                 <div className="flex items-start gap-3">
                   <input
@@ -171,7 +174,8 @@ export default function StateTasksSection({
               return (
                 <div
                   key={task.id}
-                  className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors opacity-90"
+                  onClick={() => onTaskClick?.(task)}
+                  className={`border border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors opacity-90 ${onTaskClick ? 'cursor-pointer' : ''}`}
                 >
                   <div className="flex items-start gap-2">
                     <input
