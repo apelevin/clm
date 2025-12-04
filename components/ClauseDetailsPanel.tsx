@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ClauseListItem } from "@/app/api/clauses/route";
 
 interface ClauseDetailsPanelProps {
@@ -12,7 +13,14 @@ export default function ClauseDetailsPanel({
   clause,
   onClose,
 }: ClauseDetailsPanelProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+
+  const handleContractClick = (contractId: string) => {
+    router.push(`/result?contract=${contractId}`);
+    onClose();
+  };
 
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
@@ -146,23 +154,141 @@ export default function ClauseDetailsPanel({
             </p>
           </div>
 
-          {/* AI-рекомендация */}
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">
-              AI-рекомендация (улучшенная формулировка)
+          {/* Переключатель режима сравнения */}
+          <div className="pt-4 border-t border-gray-200">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={compareMode}
+                onChange={(e) => setCompareMode(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Сравнить варианты
+              </span>
             </label>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-gray-900 mb-3">
-                {clause.aiRecommendation}
-              </p>
-              <button
-                onClick={handleCopyClause}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-              >
-                {copied ? "✓ Скопировано" : "Копировать формулировку"}
-              </button>
-            </div>
           </div>
+
+          {/* Режим сравнения */}
+          {compareMode ? (
+            <>
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 block">
+                  Сравнение вариантов
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Исходная формулировка */}
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-red-900 mb-2">
+                      Исходная формулировка
+                    </h4>
+                    <p className="text-sm text-gray-900 italic">
+                      "{clause.originalClause}"
+                    </p>
+                  </div>
+                  {/* Улучшенная формулировка */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-green-900 mb-2">
+                      Улучшенная формулировка
+                    </h4>
+                    <p className="text-sm text-gray-900">
+                      {clause.aiRecommendation}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI-пояснение */}
+              {clause.aiExplanation && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">
+                    AI-пояснение
+                  </label>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-900">
+                      {clause.aiExplanation}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Обычный режим - AI-рекомендация */
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">
+                AI-рекомендация (улучшенная формулировка)
+              </label>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-gray-900 mb-3">
+                  {clause.aiRecommendation}
+                </p>
+                <button
+                  onClick={handleCopyClause}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                >
+                  {copied ? "✓ Скопировано" : "Копировать формулировку"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Блок "Где встречается эта формулировка" */}
+          {clause.occurrenceData && (
+            <div className="pt-4 border-t border-gray-200">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 block">
+                Где встречается эта формулировка
+              </label>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
+                {/* Статистика */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {clause.occurrenceData.totalOccurrences}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      раз встречалась
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {clause.occurrenceData.risksGenerated}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      рисков породила
+                    </div>
+                  </div>
+                </div>
+
+                {/* Договоры */}
+                {clause.occurrenceData.contracts.length > 0 && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">
+                      Договоры, содержащие эту формулировку:
+                    </div>
+                    <div className="space-y-2">
+                      {clause.occurrenceData.contracts.map((contract, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleContractClick(contract.contractId)}
+                          className="w-full text-left flex items-center gap-2 text-sm text-gray-900 bg-white rounded px-3 py-2 border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                        >
+                          <span className="font-medium text-blue-600">
+                            {contract.contractNumber || contract.contractId}
+                          </span>
+                          {contract.contractName && (
+                            <span className="text-gray-600">
+                              — {contract.contractName}
+                            </span>
+                          )}
+                          <span className="ml-auto text-blue-600">→</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Категория и теги */}
           <div>
