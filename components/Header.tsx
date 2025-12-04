@@ -24,6 +24,7 @@ export default function Header({
     { path: "/", label: "Договоры" },
     { path: "/tasks", label: "Задачи" },
     { path: "/risks", label: "Риски" },
+    { path: "/clauses", label: "Формулировки" },
   ];
 
   return (

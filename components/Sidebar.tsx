@@ -17,6 +17,7 @@ const menuItems: MenuItem[] = [
   { id: "contracts", label: "Контракты", icon: "📄", href: "/" },
   { id: "tasks", label: "Задачи", icon: "✅", href: "/tasks" },
   { id: "risks", label: "Риски", icon: "⚠️", href: "/risks" },
+  { id: "clauses", label: "Формулировки", icon: "📝", href: "/clauses" },
   // Можно добавить другие пункты меню в будущем
   // { id: "reports", label: "Отчеты", icon: "📊", href: "/reports" },
   // { id: "settings", label: "Настройки", icon: "⚙️", href: "/settings" },
@@ -30,6 +31,7 @@ export default function Sidebar({ activeItem }: SidebarProps) {
     if (activeItem) return activeItem;
     if (pathname === "/risks") return "risks";
     if (pathname === "/tasks") return "tasks";
+    if (pathname === "/clauses") return "clauses";
     return "contracts";
   };
 
