@@ -8,12 +8,16 @@ interface HeaderProps {
   contractTitle?: string;
   isDocumentVisible?: boolean;
   onToggleDocumentView?: () => void;
+  onOpenVersioning?: () => void;
+  showVersioningButton?: boolean;
 }
 
 export default function Header({ 
   contractTitle = "Договор услуг",
   isDocumentVisible = true,
   onToggleDocumentView,
+  onOpenVersioning,
+  showVersioningButton = false,
 }: HeaderProps) {
   const { totalCost } = useCost();
   const router = useRouter();
@@ -101,6 +105,15 @@ export default function Header({
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
               Спросить AI
             </button>
+            
+            {showVersioningButton && onOpenVersioning && (
+              <button
+                onClick={onOpenVersioning}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                Версионность
+              </button>
+            )}
             
             <button
               type="button"

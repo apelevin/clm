@@ -7,8 +7,10 @@ import ContractInterface from "@/components/ContractInterface";
 import { useParagraphHighlighter } from "@/components/ParagraphHighlighter";
 import Header from "@/components/Header";
 import TaskDetailsPanel from "@/components/TaskDetailsPanel";
+import ContractVersioningPanel from "@/components/ContractVersioningPanel";
 import { ParsedContract, SourceRef, ContractTask } from "@/types/contract";
 import { TaskListItem } from "@/app/api/tasks/route";
+import { VersioningData } from "@/types/contract-versioning";
 import { calculateTaskDeadline } from "@/lib/date-calculator";
 
 function ResultContent() {
@@ -19,6 +21,9 @@ function ResultContent() {
   const [isDocumentVisible, setIsDocumentVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<TaskListItem | null>(null);
+  const [versioningData, setVersioningData] = useState<VersioningData | null>(null);
+  const [isVersioningPanelOpen, setIsVersioningPanelOpen] = useState(false);
+  const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
   const { highlightParagraphs, clearHighlight, scrollToParagraph } =
     useParagraphHighlighter();
 
@@ -36,10 +41,23 @@ function ResultContent() {
           }
           return response.json();
         })
-        .then((data: ParsedContract) => {
+        .then(async (data: ParsedContract) => {
           if (mounted) {
             setContract(data);
             setIsLoading(false);
+            
+            // Загружаем данные версионности
+            try {
+              const versioningResponse = await fetch(`/api/contracts/${contractId}/versioning`);
+              if (versioningResponse.ok) {
+                const versioningData: VersioningData = await versioningResponse.json();
+                if (mounted) {
+                  setVersioningData(versioningData);
+                }
+              }
+            } catch (error) {
+              console.error("Ошибка при загрузке данных версионности:", error);
+            }
           }
         })
         .catch((error) => {
@@ -189,6 +207,25 @@ function ResultContent() {
     }
   };
 
+  const handleParagraphClick = (paragraphId: string, changeId?: string) => {
+    setIsVersioningPanelOpen(true);
+    if (changeId) {
+      setSelectedChangeId(changeId);
+    }
+  };
+
+  const handleShowInText = (paragraphId: string) => {
+    const element = document.getElementById(paragraphId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Подсветка на 2 секунды
+      element.classList.add("ring-2", "ring-blue-500");
+      setTimeout(() => {
+        element.classList.remove("ring-2", "ring-blue-500");
+      }, 2000);
+    }
+  };
+
   if (isLoading || !contract) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -212,6 +249,8 @@ function ResultContent() {
         contractTitle={contractTitle}
         isDocumentVisible={isDocumentVisible}
         onToggleDocumentView={() => setIsDocumentVisible((prev) => !prev)}
+        onOpenVersioning={() => setIsVersioningPanelOpen(true)}
+        showVersioningButton={!!versioningData && !showRawJson}
       />
       
       {showRawJson ? (
@@ -244,7 +283,11 @@ function ResultContent() {
           </div>
           {isDocumentVisible && (
             <div className="overflow-y-auto border-l border-gray-200">
-              <ContractViewer paragraphs={contract.paragraphs} />
+              <ContractViewer 
+                paragraphs={contract.paragraphs}
+                paragraphChanges={versioningData?.paragraphChanges}
+                onParagraphClick={handleParagraphClick}
+              />
             </div>
           )}
         </div>
@@ -256,6 +299,16 @@ function ResultContent() {
           task={selectedTask}
           onClose={handleClosePanel}
           onStatusChange={handleStatusChange}
+        />
+      )}
+
+      {/* Панель версионности */}
+      {versioningData && (
+        <ContractVersioningPanel
+          data={versioningData}
+          isOpen={isVersioningPanelOpen}
+          onClose={() => setIsVersioningPanelOpen(false)}
+          onShowInText={handleShowInText}
         />
       )}
     </div>
