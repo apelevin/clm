@@ -22,6 +22,7 @@ export default function Header({
 
   const navItems = [
     { path: "/", label: "Договоры" },
+    { path: "/tasks", label: "Задачи" },
     { path: "/risks", label: "Риски" },
   ];
 
