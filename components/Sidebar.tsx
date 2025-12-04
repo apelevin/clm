@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter, usePathname } from "next/navigation";
+
 interface SidebarProps {
   activeItem?: string;
 }
@@ -8,17 +10,29 @@ interface MenuItem {
   id: string;
   label: string;
   icon: string;
-  href?: string;
+  href: string;
 }
 
 const menuItems: MenuItem[] = [
-  { id: "contracts", label: "Контракты", icon: "📄" },
+  { id: "contracts", label: "Контракты", icon: "📄", href: "/" },
+  { id: "risks", label: "Риски", icon: "⚠️", href: "/risks" },
   // Можно добавить другие пункты меню в будущем
-  // { id: "reports", label: "Отчеты", icon: "📊" },
-  // { id: "settings", label: "Настройки", icon: "⚙️" },
+  // { id: "reports", label: "Отчеты", icon: "📊", href: "/reports" },
+  // { id: "settings", label: "Настройки", icon: "⚙️", href: "/settings" },
 ];
 
-export default function Sidebar({ activeItem = "contracts" }: SidebarProps) {
+export default function Sidebar({ activeItem }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const getActiveItem = () => {
+    if (activeItem) return activeItem;
+    if (pathname === "/risks") return "risks";
+    return "contracts";
+  };
+
+  const currentActive = getActiveItem();
+
   return (
     <div className="w-60 bg-white border-r border-gray-200 h-full flex flex-col shadow-sm">
       <div className="p-6 border-b border-gray-200">
@@ -27,10 +41,11 @@ export default function Sidebar({ activeItem = "contracts" }: SidebarProps) {
       <nav className="flex-1 p-4">
         <ul className="space-y-1">
           {menuItems.map((item) => {
-            const isActive = activeItem === item.id;
+            const isActive = currentActive === item.id;
             return (
               <li key={item.id}>
                 <button
+                  onClick={() => router.push(item.href)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-blue-50 text-blue-700"

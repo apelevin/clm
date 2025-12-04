@@ -14,6 +14,10 @@ export interface ContractListItem {
   amount?: number; // сумма договора
   currency?: string; // валюта
   lastUpdated?: Date; // дата последнего обновления (из Activity log)
+  stage?: "normal" | "atRisk" | "overdue"; // стадия договора
+  criticalRisks?: number; // количество критических рисков
+  risks?: number; // количество обычных рисков
+  hasProblems?: boolean; // есть ли проблемы с договором
 }
 
 export async function GET() {
@@ -44,6 +48,15 @@ export async function GET() {
         const activityLogs = getActivityLogs(contractState.number);
         const lastActivity = activityLogs.length > 0 ? activityLogs[0] : null;
 
+        // Генерируем тестовые данные для mock-up
+        const stages: ("normal" | "atRisk" | "overdue")[] = ["normal", "atRisk", "overdue"];
+        const randomStage = stages[Math.floor(Math.random() * stages.length)];
+        const hasCriticalRisks = Math.random() > 0.6;
+        const hasRisks = Math.random() > 0.4;
+        const criticalRisksCount = hasCriticalRisks ? Math.floor(Math.random() * 3) + 1 : 0;
+        const risksCount = hasRisks && !hasCriticalRisks ? Math.floor(Math.random() * 3) + 1 : 0;
+        const hasProblems = randomStage !== "normal" || criticalRisksCount > 0 || risksCount > 0;
+
         const contractItem: ContractListItem = {
           id,
           fileName: file,
@@ -54,6 +67,10 @@ export async function GET() {
           amount: contractState.totalAmount?.amount,
           currency: contractState.totalAmount?.currency,
           lastUpdated: lastActivity ? new Date(lastActivity.timestamp) : undefined,
+          stage: randomStage,
+          criticalRisks: criticalRisksCount,
+          risks: risksCount,
+          hasProblems,
         };
 
         contracts.push(contractItem);
