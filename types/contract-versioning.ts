@@ -53,3 +53,4 @@ export interface VersioningData {
   paragraphChanges: ParagraphChange[]; // связь абзацев с изменениями
 }
 
+

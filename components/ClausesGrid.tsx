@@ -36,3 +36,4 @@ export default function ClausesGrid({ clauses, onClauseClick }: ClausesGridProps
   );
 }
 
+
