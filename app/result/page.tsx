@@ -8,6 +8,8 @@ import { useParagraphHighlighter } from "@/components/ParagraphHighlighter";
 import Header from "@/components/Header";
 import TaskDetailsPanel from "@/components/TaskDetailsPanel";
 import ContractVersioningPanel from "@/components/ContractVersioningPanel";
+import RiskAnalysisPanel from "@/components/RiskAnalysisPanel";
+import { KeyProvision, ClauseRiskAnalysis } from "@/types/contract";
 import { ParsedContract, SourceRef, ContractTask } from "@/types/contract";
 import { TaskListItem } from "@/app/api/tasks/route";
 import { VersioningData } from "@/types/contract-versioning";
@@ -24,6 +26,14 @@ function ResultContent() {
   const [versioningData, setVersioningData] = useState<VersioningData | null>(null);
   const [isVersioningPanelOpen, setIsVersioningPanelOpen] = useState(false);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
+  const [selectedRiskProvision, setSelectedRiskProvision] = useState<KeyProvision | null>(null);
+  const [riskAnalysis, setRiskAnalysis] = useState<ClauseRiskAnalysis | null>(null);
+  const [isRiskLoading, setIsRiskLoading] = useState(false);
+  const [riskError, setRiskError] = useState<string | null>(null);
+  const [leftPanelWidth, setLeftPanelWidth] = useState<number>(400);
+  const [isResizingLeft, setIsResizingLeft] = useState(false);
+  const [rightPanelWidth, setRightPanelWidth] = useState<number>(600);
+  const [isResizingRight, setIsResizingRight] = useState(false);
   const { highlightParagraphs, clearHighlight, scrollToParagraph } =
     useParagraphHighlighter();
 
@@ -195,6 +205,55 @@ function ResultContent() {
   const handleTaskClick = (task: ContractTask, stateLabel: string, stateId: string) => {
     const taskListItem = convertTaskToListItem(task, stateLabel, stateId);
     setSelectedTask(taskListItem);
+    // Закрываем другие панели при открытии панели задачи
+    setIsVersioningPanelOpen(false);
+    setSelectedRiskProvision(null);
+  };
+
+  const handleRiskClick = async (provision: KeyProvision) => {
+    // Закрываем другие панели при открытии панели риска
+    setSelectedTask(null);
+    setIsVersioningPanelOpen(false);
+    
+    try {
+      setSelectedRiskProvision(provision);
+      setRiskAnalysis(null);
+      setRiskError(null);
+      setIsRiskLoading(true);
+
+      const response = await fetch("/api/analyze-risk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clauseText: provision.content || "",
+          fullContract: contract,
+          provisionId: provision.id,
+          provisionCategory: provision.category,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Не удалось выполнить анализ рисков");
+      }
+
+      const data: ClauseRiskAnalysis = await response.json();
+      setRiskAnalysis(data);
+    } catch (error: any) {
+      console.error("Ошибка анализа рисков:", error);
+      setRiskError(error?.message || "Не удалось выполнить анализ рисков");
+    } finally {
+      setIsRiskLoading(false);
+    }
+  };
+
+  const handleCloseRiskPanel = () => {
+    setSelectedRiskProvision(null);
+    setRiskAnalysis(null);
+    setRiskError(null);
+    setIsRiskLoading(false);
   };
 
   const handleClosePanel = () => {
@@ -209,6 +268,8 @@ function ResultContent() {
 
   const handleParagraphClick = (paragraphId: string, changeId?: string) => {
     setIsVersioningPanelOpen(true);
+    // Закрываем панель задачи при открытии панели версионности
+    setSelectedTask(null);
     if (changeId) {
       setSelectedChangeId(changeId);
     }
@@ -225,6 +286,53 @@ function ResultContent() {
       }, 2000);
     }
   };
+
+  // Обработчики для изменения ширины левой панели
+  const handleLeftPanelMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingLeft(true);
+  };
+
+  // Обработчики для изменения ширины правой панели
+  const handleRightPanelMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingRight(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingLeft) {
+        const newWidth = e.clientX;
+        // Ограничиваем ширину между 300px и 600px
+        const clampedWidth = Math.max(300, Math.min(600, newWidth));
+        setLeftPanelWidth(clampedWidth);
+      } else if (isResizingRight) {
+        const newWidth = window.innerWidth - e.clientX;
+        // Ограничиваем ширину между 400px и 800px
+        const clampedWidth = Math.max(400, Math.min(800, newWidth));
+        setRightPanelWidth(clampedWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingLeft(false);
+      setIsResizingRight(false);
+    };
+
+    if (isResizingLeft || isResizingRight) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizingLeft, isResizingRight]);
 
   if (isLoading || !contract) {
     return (
@@ -249,7 +357,12 @@ function ResultContent() {
         contractTitle={contractTitle}
         isDocumentVisible={isDocumentVisible}
         onToggleDocumentView={() => setIsDocumentVisible((prev) => !prev)}
-        onOpenVersioning={() => setIsVersioningPanelOpen(true)}
+        onOpenVersioning={() => {
+          setIsVersioningPanelOpen(true);
+          // Закрываем другие панели при открытии панели версионности
+          setSelectedTask(null);
+          setSelectedRiskProvision(null);
+        }}
         showVersioningButton={!!versioningData && !showRawJson}
       />
       
@@ -269,48 +382,133 @@ function ResultContent() {
           </pre>
         </div>
       ) : (
-        <div
-          className={`grid grid-cols-1 h-[calc(100vh-64px)] ${
-            isDocumentVisible ? "lg:grid-cols-2" : ""
-          }`}
-        >
-          <div className="overflow-y-auto bg-gray-50">
+        <div className="flex h-[calc(100vh-64px)]">
+          {/* Левая панель - Атрибуты */}
+          <div 
+            className="flex-shrink-0 overflow-y-auto bg-gray-50 border-r border-gray-200 relative"
+            style={{ width: `${leftPanelWidth}px` }}
+          >
             <ContractInterface 
               contract={contract} 
               onShowSource={handleShowSource}
               onTaskClick={handleTaskClick}
+              onRiskClick={handleRiskClick}
             />
+            
+            {/* Resize handle для левой панели */}
+            <div
+              onMouseDown={handleLeftPanelMouseDown}
+              className={`absolute top-0 right-0 w-1 h-full cursor-col-resize group ${
+                isResizingLeft ? "bg-blue-500" : "hover:bg-blue-200"
+              } transition-colors`}
+              style={{ zIndex: 10 }}
+            >
+              <div className={`absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/2 w-1 h-12 rounded-full transition-colors ${
+                isResizingLeft ? "bg-blue-500" : "bg-gray-300 group-hover:bg-blue-400"
+              }`} />
+            </div>
           </div>
+
+          {/* Центральная панель - Текст документа */}
           {isDocumentVisible && (
-            <div className="overflow-y-auto border-l border-gray-200">
-              <ContractViewer 
-                paragraphs={contract.paragraphs}
-                paragraphChanges={versioningData?.paragraphChanges}
-                onParagraphClick={handleParagraphClick}
+            <div className="flex-1 overflow-y-auto border-r border-gray-200 bg-white">
+              <div className="max-w-[800px] mx-auto px-6 py-6">
+                <ContractViewer 
+                  paragraphs={contract.paragraphs}
+                  paragraphChanges={versioningData?.paragraphChanges}
+                  onParagraphClick={handleParagraphClick}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Правая панель - Версионность */}
+          {isVersioningPanelOpen && versioningData && (
+            <div 
+              className="flex-shrink-0 border-l border-gray-200 bg-white relative"
+              style={{ width: `${rightPanelWidth}px` }}
+            >
+              {/* Resize handle для правой панели */}
+              <div
+                onMouseDown={handleRightPanelMouseDown}
+                className={`absolute top-0 left-0 w-1 h-full cursor-col-resize group ${
+                  isResizingRight ? "bg-blue-500" : "hover:bg-blue-200"
+                } transition-colors`}
+                style={{ zIndex: 10 }}
+              >
+                <div className={`absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2 w-1 h-12 rounded-full transition-colors ${
+                  isResizingRight ? "bg-blue-500" : "bg-gray-300 group-hover:bg-blue-400"
+                }`} />
+              </div>
+              
+              <ContractVersioningPanel
+                data={versioningData}
+                isOpen={isVersioningPanelOpen}
+                onClose={() => setIsVersioningPanelOpen(false)}
+                onShowInText={handleShowInText}
+              />
+            </div>
+          )}
+
+          {/* Правая панель - Детали задачи */}
+          {selectedTask && (
+            <div 
+              className="flex-shrink-0 border-l border-gray-200 bg-white relative"
+              style={{ width: `${rightPanelWidth}px` }}
+            >
+              {/* Resize handle для правой панели */}
+              <div
+                onMouseDown={handleRightPanelMouseDown}
+                className={`absolute top-0 left-0 w-1 h-full cursor-col-resize group ${
+                  isResizingRight ? "bg-blue-500" : "hover:bg-blue-200"
+                } transition-colors`}
+                style={{ zIndex: 10 }}
+              >
+                <div className={`absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2 w-1 h-12 rounded-full transition-colors ${
+                  isResizingRight ? "bg-blue-500" : "bg-gray-300 group-hover:bg-blue-400"
+                }`} />
+              </div>
+              
+              <TaskDetailsPanel
+                task={selectedTask}
+                onClose={handleClosePanel}
+                onStatusChange={handleStatusChange}
+              />
+            </div>
+          )}
+
+          {/* Правая панель - Анализ риска */}
+          {selectedRiskProvision && (
+            <div 
+              className="flex-shrink-0 border-l border-gray-200 bg-white relative"
+              style={{ width: `${rightPanelWidth}px` }}
+            >
+              {/* Resize handle для правой панели */}
+              <div
+                onMouseDown={handleRightPanelMouseDown}
+                className={`absolute top-0 left-0 w-1 h-full cursor-col-resize group ${
+                  isResizingRight ? "bg-blue-500" : "hover:bg-blue-200"
+                } transition-colors`}
+                style={{ zIndex: 10 }}
+              >
+                <div className={`absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2 w-1 h-12 rounded-full transition-colors ${
+                  isResizingRight ? "bg-blue-500" : "bg-gray-300 group-hover:bg-blue-400"
+                }`} />
+              </div>
+              
+              <RiskAnalysisPanel
+                provision={selectedRiskProvision}
+                riskResult={riskAnalysis}
+                onClose={handleCloseRiskPanel}
+                isLoading={isRiskLoading}
+                error={riskError}
+                contractNumber={contract?.contractState?.number}
               />
             </div>
           )}
         </div>
       )}
 
-      {/* Боковая панель деталей задачи */}
-      {selectedTask && (
-        <TaskDetailsPanel
-          task={selectedTask}
-          onClose={handleClosePanel}
-          onStatusChange={handleStatusChange}
-        />
-      )}
-
-      {/* Панель версионности */}
-      {versioningData && (
-        <ContractVersioningPanel
-          data={versioningData}
-          isOpen={isVersioningPanelOpen}
-          onClose={() => setIsVersioningPanelOpen(false)}
-          onShowInText={handleShowInText}
-        />
-      )}
     </div>
   );
 }

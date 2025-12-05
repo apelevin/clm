@@ -18,6 +18,7 @@ interface ContractInterfaceProps {
   onShowSource: (sourceRefs: SourceRef[]) => void;
   activeMainTab?: string;
   onTaskClick?: (task: ContractTask, stateLabel: string, stateId: string) => void;
+  onRiskClick?: (provision: KeyProvision) => void;
 }
 
 // Функция для автоматического определения категории (дублируем логику из валидатора для клиента)
@@ -59,6 +60,7 @@ export default function ContractInterface({
   contract,
   onShowSource,
   onTaskClick,
+  onRiskClick,
 }: ContractInterfaceProps) {
   const { addCost } = useCost();
   const { contractState, keyProvisions, paymentObligations, possibleStates } = contract;
@@ -319,6 +321,13 @@ export default function ContractInterface({
   };
 
   const handleAnalyzeRisk = async (provision: KeyProvision) => {
+    // Если есть callback, используем его вместо локальной панели
+    if (onRiskClick) {
+      onRiskClick(provision);
+      return;
+    }
+
+    // Иначе используем локальную панель (для обратной совместимости)
     try {
       setSelectedProvisionForRisk(provision);
       setProvisionRiskResult(null);

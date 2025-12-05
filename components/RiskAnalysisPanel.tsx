@@ -153,7 +153,7 @@ function RiskAnalysisPanel({
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[600px] bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col">
+    <div className="h-full flex flex-col bg-white overflow-hidden">
       {/* Заголовок */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between sticky top-0 bg-white z-10">
         <div className="flex-1 mr-4">

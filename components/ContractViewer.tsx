@@ -57,7 +57,7 @@ export default function ContractViewer({
 
   return (
     <div
-      className="h-full overflow-y-auto bg-white p-6"
+      className="h-full overflow-y-auto bg-white"
       data-scroll-container="true"
     >
       <div className="space-y-4">

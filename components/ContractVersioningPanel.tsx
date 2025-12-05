@@ -27,8 +27,6 @@ export default function ContractVersioningPanel({
   const [selectedVersion, setSelectedVersion] = useState<DocumentVersion | null>(null);
   const [previousVersion, setPreviousVersion] = useState<DocumentVersion | null>(null);
 
-  if (!isOpen) return null;
-
   const handleShowDiff = (change: ClauseChange) => {
     setSelectedChange(change);
   };
@@ -50,9 +48,11 @@ export default function ContractVersioningPanel({
     setPreviousVersion(null);
   };
 
+  if (!isOpen) return null;
+
   return (
     <>
-      <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[600px] bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col">
+      <div className="h-full flex flex-col bg-white">
         {/* Заголовок */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">Версионность договора</h2>

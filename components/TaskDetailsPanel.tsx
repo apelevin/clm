@@ -164,7 +164,7 @@ export default function TaskDetailsPanel({
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[600px] bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col">
+    <div className="h-full flex flex-col bg-white overflow-hidden">
       {/* Заголовок */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">Детали задачи</h2>
