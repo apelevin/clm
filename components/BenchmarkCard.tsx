@@ -37,7 +37,8 @@ export default function BenchmarkCard({ benchmark }: BenchmarkCardProps) {
 
   const score = benchmark.score ?? (benchmark.status === "present" ? 90 : benchmark.status === "partial" ? 50 : 10);
   const statusIcon = getStatusIcon(benchmark.status, score);
-  const hasRecommendation = benchmark.recommendation && benchmark.recommendation.trim().length > 0;
+  const recommendationText = benchmark.recommendation ?? "";
+  const hasRecommendation = recommendationText.trim().length > 0;
 
   return (
     <div className={`bg-white border-2 ${getBorderColor(score)} rounded-lg p-4 shadow-sm transition-all hover:shadow-md`}>
@@ -97,7 +98,7 @@ export default function BenchmarkCard({ benchmark }: BenchmarkCardProps) {
           {isExpanded && (
             <div className="mt-3 pl-6 border-l-2 border-gray-200">
               <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                {benchmark.recommendation.split('\n').map((line, lineIdx) => {
+                {recommendationText.split('\n').map((line, lineIdx) => {
                   const trimmedLine = line.trim();
                   if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
                     return (
