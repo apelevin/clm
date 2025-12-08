@@ -224,7 +224,10 @@ export function validateParsedContract(data: any): ParsedContract {
               : undefined,
           };
         })
-        .filter((obligation): obligation is PaymentObligation => obligation !== null)
+        .filter(
+          (obligation: PaymentObligation | null): obligation is PaymentObligation =>
+            obligation !== null
+        )
     : [];
 
   // Нормализация possibleStates
