@@ -308,7 +308,10 @@ export function validateParsedContract(data: any): ParsedContract {
             tasks: normalizedTasks.length > 0 ? normalizedTasks : undefined,
           };
         })
-        .filter((state): state is ContractStatus => state !== null)
+        .filter(
+          (state: ContractStatus | null): state is ContractStatus =>
+            state !== null
+        )
     : [];
 
   return {
