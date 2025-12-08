@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, memo } from "react";
-import { ParsedContract, SourceRef, PartyRole, KeyProvision, ContractStatus, ClauseRiskAnalysis } from "@/types/contract";
+import { ParsedContract, SourceRef, PartyRole, KeyProvision, ContractStatus, ContractTask, ClauseRiskAnalysis } from "@/types/contract";
 import ProvisionCard from "./ProvisionCard";
 import PaymentObligationsSection from "./PaymentObligationsSection";
 import ContractStatesSection from "./ContractStatesSection";
