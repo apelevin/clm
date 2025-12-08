@@ -5,10 +5,10 @@ import { ParsedContract } from "@/types/contract";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: contractId } = await params;
+    const { id: contractId } = params;
     const parsedDir = path.join(process.cwd(), "contracts", "parsed");
     const filePath = path.join(parsedDir, `${contractId}.json`);
 
