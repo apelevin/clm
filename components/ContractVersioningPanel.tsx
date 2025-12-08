@@ -33,7 +33,7 @@ export default function ContractVersioningPanel({
 
   const handleShowVersionDiff = (version: DocumentVersion, prevVersion?: DocumentVersion) => {
     setSelectedVersion(version);
-    setPreviousVersion(prevVersion);
+    setPreviousVersion(prevVersion ?? null);
     // Для версий diff можно реализовать позже
   };
 
