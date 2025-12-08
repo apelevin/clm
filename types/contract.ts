@@ -49,6 +49,18 @@ export interface KeyProvision {
   priority?: "primary" | "secondary"; // Основные или второстепенные положения
 }
 
+// Действие по договору (используется в ActionPanel/ActionCard)
+export interface ContractAction {
+  id: string;
+  label: string;
+  description?: string;
+  visibleFor: PartyRole;
+  sourceRefs: SourceRef[];
+  relatedClauses?: ClauseRef[];
+  isAvailable?: boolean;
+  priority?: "primary" | "secondary";
+}
+
 export interface RelativeDate {
   value: number; // Количество дней
   type: "calendar" | "working"; // Календарные или рабочие дни
