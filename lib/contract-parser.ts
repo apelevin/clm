@@ -289,7 +289,10 @@ export function validateParsedContract(data: any): ParsedContract {
                     deadline: normalizedDeadline,
                   };
                 })
-                .filter((task): task is ContractTask => task !== null)
+                .filter(
+                  (task: ContractTask | null): task is ContractTask =>
+                    task !== null
+                )
             : [];
 
           return {
