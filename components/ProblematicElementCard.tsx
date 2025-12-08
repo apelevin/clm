@@ -127,7 +127,7 @@ export default function ProblematicElementCard({
     while ((match = mentionRegex.exec(text)) !== null) {
       mentions.push(`@${match[1]}`);
     }
-    return [...new Set(mentions)]; // Уникальные упоминания
+    return Array.from(new Set(mentions)); // Уникальные упоминания
   };
 
   const handleStatusButtonClick = (newStatus: ProblematicElementStatus) => {
