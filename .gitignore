@@ -33,6 +33,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# предварительно сгенерированные JSON контрактов
-/contracts/parsed/*.json
